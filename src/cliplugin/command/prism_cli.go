@@ -6,13 +6,16 @@ import (
     "fmt"
     "os"
     "errors"
+    "strings"
 )
 
 const pluginName = "pm-please-add-details" // also in scripts/reinstall.sh
 const registerLogFormatCommand = "register-log-format"
+const registerMetricsEndpointCommand = "register-metrics-endpoint"
 const registerLogFormatUsage = "cf register-log-format APPNAME FORMAT"
+const registerMetricsEndpointUsage = "cf register-metrics-endpoint APPNAME PATH"
 
-type PrismCli struct {}
+type PrismCli struct{}
 
 type cliCommandRunner interface {
     CliCommandWithoutTerminalOutput(args ...string) ([]string, error)
@@ -23,6 +26,9 @@ func (c PrismCli) Run(cliConnection plugin.CliConnection, args []string) {
     switch args[0] {
     case registerLogFormatCommand:
         err := RegisterLogFormat(cliConnection, args[1:])
+        exitIfErr(err)
+    case registerMetricsEndpointCommand:
+        err := RegisterMetricsEndpoint(cliConnection, args[1:])
         exitIfErr(err)
     case "CLI-MESSAGE-UNINSTALL":
         // do nothing
@@ -45,6 +51,13 @@ func (c PrismCli) GetMetadata() plugin.PluginMetadata {
                     Usage: registerLogFormatUsage,
                 },
             },
+            {
+                Name:     registerMetricsEndpointCommand,
+                HelpText: "This will register your metrics endpoint which will then be scraped at the interval defined at deploy",
+                UsageDetails: plugin.Usage{
+                    Usage: registerMetricsEndpointUsage,
+                },
+            },
         },
     }
 }
@@ -55,14 +68,30 @@ func RegisterLogFormat(cliConn cliCommandRunner, args []string) error {
     }
     appName := args[0]
     logFormat := args[1]
-    serviceName := "structured-format-" + logFormat
+
+    return EnsureServiceAndBind(cliConn, appName, "structured-format", logFormat)
+}
+
+func RegisterMetricsEndpoint(cliConn cliCommandRunner, args []string) error {
+    if len(args) != 2 {
+        return errors.New("Usage: " + registerMetricsEndpointUsage)
+    }
+    appName := args[0]
+    path := args[1]
+
+    return EnsureServiceAndBind(cliConn, appName, "metrics-endpoint", path)
+}
+
+func EnsureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, config string) error {
+    cleanedConfig := strings.Trim(strings.Replace(config, "/", "-", -1), "-")
+    serviceName := serviceProtocol + "-" + cleanedConfig
     exists, err := findExistingService(cliConn, serviceName)
     if err != nil {
         return err
     }
 
     if !exists {
-        binding := "structured-format://" + logFormat
+        binding := serviceProtocol + "://" + config
         _, err := cliConn.CliCommandWithoutTerminalOutput("create-user-provided-service", serviceName, "-l", binding)
         if err != nil {
             return err
