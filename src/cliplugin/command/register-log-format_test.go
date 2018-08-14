@@ -12,8 +12,8 @@ var _ = Describe("RegisterLogFormat", func() {
     It("creates a service and binds it to the application", func() {
         cliConnection := newMockCliConnection()
 
-        command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
-
+        err := command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
+        Expect(err).ToNot(HaveOccurred())
         Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
             "create-user-provided-service",
             "structured-format-format-name",
@@ -28,53 +28,45 @@ var _ = Describe("RegisterLogFormat", func() {
         )))
     })
 
-    It("panics if number of arguments is wrong", func() {
-        cliConnection := newMockCliConnection()
-
-        Expect(func() {
-            command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name", "some-garbage"})
-        }).To(Panic())
-    })
-
     It("Doesn't create a service if service already present", func() {
         cliConnection := newMockCliConnection()
         cliConnection.serviceName = "structured-format-format-name"
 
-        command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
-
+        err := command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
+        Expect(err).ToNot(HaveOccurred())
         Expect(cliConnection.cliCommandsCalled).To(Receive(ContainElement("bind-service")))
         Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
     })
 
-    It("panics if creating the service fails", func() {
+    It("returns error if number of arguments is wrong", func() {
+        cliConnection := newMockCliConnection()
+
+        Expect(command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name", "some-garbage"})).To(HaveOccurred())
+    })
+
+    It("returns error if creating the service fails", func() {
         cliConnection := newMockCliConnection()
         cliConnection.getServicesError = errors.New("error")
 
-        Expect(func() {
-            command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
-        }).To(Panic())
+        Expect(command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})).Should(HaveOccurred())
         Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
     })
 
-    It("panics if creating the service fails", func() {
+    It("returns error if creating the service fails", func() {
         cliConnection := newMockCliConnection()
         cliConnection.cliCommandErrorCommand = "create-user-provided-service"
 
-        Expect(func() {
-            command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
-        }).To(Panic())
+        Expect(command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})).Should(HaveOccurred())
 
         Expect(cliConnection.cliCommandsCalled).To(Receive(ContainElement("create-user-provided-service")))
         Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
     })
 
-    It("panics if binding fails", func() {
+    It("returns error if binding fails", func() {
         cliConnection := newMockCliConnection()
         cliConnection.cliCommandErrorCommand = "bind-service"
 
-        Expect(func() {
-            command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
-        }).To(Panic())
+        Expect(command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})).Should(HaveOccurred())
 
         Expect(cliConnection.cliCommandsCalled).To(Receive(ContainElement("create-user-provided-service")))
         Expect(cliConnection.cliCommandsCalled).To(Receive(ContainElement("bind-service")))

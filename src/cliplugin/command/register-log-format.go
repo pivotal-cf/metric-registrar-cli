@@ -5,6 +5,7 @@ import (
     "code.cloudfoundry.org/cli/plugin/models"
     "fmt"
     "os"
+    "errors"
 )
 
 const pluginName = "pm-please-add-details" // also in scripts/reinstall.sh
@@ -21,7 +22,8 @@ type cliCommandRunner interface {
 func (c PrismCli) Run(cliConnection plugin.CliConnection, args []string) {
     switch args[0] {
     case registerLogFormatCommand:
-        RegisterLogFormat(cliConnection, args[1:])
+        err := RegisterLogFormat(cliConnection, args[1:])
+        exitIfErr(err)
     case "CLI-MESSAGE-UNINSTALL":
         // do nothing
     }
@@ -47,24 +49,29 @@ func (c PrismCli) GetMetadata() plugin.PluginMetadata {
     }
 }
 
-func RegisterLogFormat(cliConn cliCommandRunner, args []string) {
+func RegisterLogFormat(cliConn cliCommandRunner, args []string) error {
     if len(args) != 2 {
-        panic("Usage: " + registerLogFormatUsage)
+        return errors.New("Usage: " + registerLogFormatUsage)
     }
     appName := args[0]
     logFormat := args[1]
     serviceName := "structured-format-" + logFormat
     exists, err := findExistingService(cliConn, serviceName)
-    exitIfErr(err)
+    if err != nil {
+        return err
+    }
 
     if !exists {
         binding := "structured-format://" + logFormat
         _, err := cliConn.CliCommandWithoutTerminalOutput("create-user-provided-service", serviceName, "-l", binding)
-        exitIfErr(err)
+        if err != nil {
+            return err
+        }
     }
 
     _, err = cliConn.CliCommandWithoutTerminalOutput("bind-service", appName, serviceName)
-    exitIfErr(err)
+
+    return err
 }
 
 func findExistingService(cliConn cliCommandRunner, serviceName string) (bool, error) {
