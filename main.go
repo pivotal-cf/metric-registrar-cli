@@ -2,9 +2,9 @@ package main
 
 import (
     "code.cloudfoundry.org/cli/plugin"
-    "github.com/pivotal-cf/prism-cli/command"
+    "github.com/pivotal-cf/cf-metric-registrar/command"
 )
 
 func main() {
-    plugin.Start(command.PrismCli{})
+    plugin.Start(command.MetricRegistrarCli{})
 }

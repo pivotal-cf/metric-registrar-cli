@@ -6,10 +6,10 @@ import (
 
     "code.cloudfoundry.org/cli/plugin/models"
     "errors"
-    "github.com/pivotal-cf/prism-cli/command"
+    "github.com/pivotal-cf/cf-metric-registrar/command"
 )
 
-var _ = Describe("PrismCli", func() {
+var _ = Describe("CLI", func() {
     Context("RegisterLogFormat", func() {
         It("creates a service", func() {
             cliConnection := newMockCliConnection()

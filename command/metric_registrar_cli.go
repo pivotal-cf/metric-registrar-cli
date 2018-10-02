@@ -16,14 +16,14 @@ const registerMetricsEndpointCommand = "register-metrics-endpoint"
 const registerLogFormatUsage = "cf register-log-format APPNAME FORMAT"
 const registerMetricsEndpointUsage = "cf register-metrics-endpoint APPNAME PATH"
 
-type PrismCli struct{}
+type MetricRegistrarCli struct{}
 
 type cliCommandRunner interface {
     CliCommandWithoutTerminalOutput(args ...string) ([]string, error)
     GetServices() ([]plugin_models.GetServices_Model, error)
 }
 
-func (c PrismCli) Run(cliConnection plugin.CliConnection, args []string) {
+func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []string) {
     switch args[0] {
     case registerLogFormatCommand:
         err := RegisterLogFormat(cliConnection, args[1:])
@@ -36,7 +36,7 @@ func (c PrismCli) Run(cliConnection plugin.CliConnection, args []string) {
     }
 }
 
-func (c PrismCli) GetMetadata() plugin.PluginMetadata {
+func (c MetricRegistrarCli) GetMetadata() plugin.PluginMetadata {
     return plugin.PluginMetadata{
         Name: pluginName,
         Version: plugin.VersionType{
