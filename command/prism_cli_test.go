@@ -4,9 +4,9 @@ import (
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
 
-    "cliplugin/command"
-    "errors"
     "code.cloudfoundry.org/cli/plugin/models"
+    "errors"
+    "github.com/pivotal-cf/prism-cli/command"
 )
 
 var _ = Describe("PrismCli", func() {

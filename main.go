@@ -2,7 +2,7 @@ package main
 
 import (
     "code.cloudfoundry.org/cli/plugin"
-    "cliplugin/command"
+    "github.com/pivotal-cf/prism-cli/command"
 )
 
 func main() {

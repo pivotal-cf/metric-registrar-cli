@@ -8,7 +8,4 @@ plugins
 pkg
 
 # vendored dependencies
-src/cliplugin/vendor/
-src/github.com
-!src/github.com/pivotal-cf
-src/golang.org
+vendor/

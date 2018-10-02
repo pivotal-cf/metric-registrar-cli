@@ -33,23 +33,19 @@ function build_for() {
 }
 
 pushd ${PROJECT_ROOT}
-  source .envrc
+  if [[ -z "${NO_DEP:-}" ]]; then
+    echo "Fetching dependencies..."
+    go get ./...
+  fi
 
-  echo "Fetching dependencies..."
-  [[ -z "${NO_DEP:-}" ]] && go get github.com/golang/dep/cmd/dep
-
-  pushd src/cliplugin
-    [[ -z "${NO_DEP:-}" ]] && dep ensure
-
-    if [[ -n "${CLI_BUILD_OS}" ]]; then
-      build_for ${CLI_BUILD_OS} ${CLI_BUILD_ARCH:-amd64}
-    else
-      for OS in windows linux darwin; do
-        build_for ${OS} amd64
-      done
-      for OS in windows linux; do
-        build_for ${OS} 386
-      done
-    fi
-  popd
+  if [[ -n "${CLI_BUILD_OS}" ]]; then
+    build_for ${CLI_BUILD_OS} ${CLI_BUILD_ARCH:-amd64}
+  else
+    for OS in windows linux darwin; do
+      build_for ${OS} amd64
+    done
+    for OS in windows linux; do
+      build_for ${OS} 386
+    done
+  fi
 popd

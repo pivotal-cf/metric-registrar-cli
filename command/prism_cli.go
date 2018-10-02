@@ -3,9 +3,10 @@ package command
 import (
     "code.cloudfoundry.org/cli/plugin"
     "code.cloudfoundry.org/cli/plugin/models"
+
+    "errors"
     "fmt"
     "os"
-    "errors"
     "strings"
 )
 
@@ -64,7 +65,7 @@ func (c PrismCli) GetMetadata() plugin.PluginMetadata {
 
 func RegisterLogFormat(cliConn cliCommandRunner, args []string) error {
     if len(args) != 2 {
-        return errors.New("Usage: " + registerLogFormatUsage)
+        return errors.New("usage: " + registerLogFormatUsage)
     }
     appName := args[0]
     logFormat := args[1]
