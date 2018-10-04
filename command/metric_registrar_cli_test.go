@@ -6,7 +6,7 @@ import (
 
     "code.cloudfoundry.org/cli/plugin/models"
     "errors"
-    "github.com/pivotal-cf/cf-metric-registrar/command"
+    "github.com/pivotal-cf/metric-registrar-cli/command"
 )
 
 var _ = Describe("CLI", func() {

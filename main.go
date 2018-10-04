@@ -2,7 +2,7 @@ package main
 
 import (
     "code.cloudfoundry.org/cli/plugin"
-    "github.com/pivotal-cf/cf-metric-registrar/command"
+    "github.com/pivotal-cf/metric-registrar-cli/command"
 )
 
 func main() {
