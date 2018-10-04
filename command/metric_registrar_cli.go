@@ -10,7 +10,7 @@ import (
     "strings"
 )
 
-const pluginName = "app-metric-registrar"
+const pluginName = "metric-registrar"
 const registerLogFormatCommand = "register-log-format"
 const registerMetricsEndpointCommand = "register-metrics-endpoint"
 const registerLogFormatUsage = "cf register-log-format APPNAME FORMAT"
