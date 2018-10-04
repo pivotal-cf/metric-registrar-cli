@@ -16,7 +16,11 @@ const registerMetricsEndpointCommand = "register-metrics-endpoint"
 const registerLogFormatUsage = "cf register-log-format APPNAME FORMAT"
 const registerMetricsEndpointUsage = "cf register-metrics-endpoint APPNAME PATH"
 
-type MetricRegistrarCli struct{}
+type MetricRegistrarCli struct {
+    Major int
+    Minor int
+    Patch int
+}
 
 type cliCommandRunner interface {
     CliCommandWithoutTerminalOutput(args ...string) ([]string, error)
@@ -40,9 +44,9 @@ func (c MetricRegistrarCli) GetMetadata() plugin.PluginMetadata {
     return plugin.PluginMetadata{
         Name: pluginName,
         Version: plugin.VersionType{
-            Major: 0,
-            Minor: 0,
-            Build: 0,
+            Major: c.Major,
+            Minor: c.Minor,
+            Build: c.Patch,
         },
         Commands: []plugin.Command{
             {
