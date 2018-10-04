@@ -29,7 +29,7 @@ function build_for() {
   MAJOR_MINOR_PATCH=( ${BUILD_NUMBER//./ })
   VERSION_FLAGS="-X main.Major=${MAJOR_MINOR_PATCH[0]} -X main.Minor=${MAJOR_MINOR_PATCH[1]} -X main.Patch=${MAJOR_MINOR_PATCH[2]}"
 
-  GOARCH=${ARCH} GOOS=${OS} go build -o ${PLUGIN_OUTPUT}/app-metrics-registrar-${OS}-${ARCH}-${BUILD_NUMBER} -ldflags "${VERSION_FLAGS}"
+  GOARCH=${ARCH} GOOS=${OS} go build -o ${PLUGIN_OUTPUT}/metric-registrar-cli-${OS}-${ARCH}-${BUILD_NUMBER} -ldflags "${VERSION_FLAGS}"
 }
 
 pushd ${PROJECT_ROOT}
