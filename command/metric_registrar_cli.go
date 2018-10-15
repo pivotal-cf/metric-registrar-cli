@@ -3,6 +3,7 @@ package command
 import (
     "code.cloudfoundry.org/cli/plugin"
     "code.cloudfoundry.org/cli/plugin/models"
+    "github.com/pivotal-cf/metric-registrar-cli/registrations"
 
     "errors"
     "fmt"
@@ -10,11 +11,17 @@ import (
     "strings"
 )
 
-const pluginName = "metric-registrar"
-const registerLogFormatCommand = "register-log-format"
-const registerMetricsEndpointCommand = "register-metrics-endpoint"
-const registerLogFormatUsage = "cf register-log-format APPNAME <json|DogStatsD>"
-const registerMetricsEndpointUsage = "cf register-metrics-endpoint APPNAME PATH"
+const (
+    pluginName                     = "metric-registrar"
+    registerLogFormatCommand       = "register-log-format"
+    registerMetricsEndpointCommand = "register-metrics-endpoint"
+    registerLogFormatUsage         = "cf register-log-format APPNAME <json|DogStatsD>"
+    registerMetricsEndpointUsage   = "cf register-metrics-endpoint APPNAME PATH"
+    unregisterLogFormatUsage       = "cf unregister-log-format APPNAME [-f FORMAT]"
+    unregisterMetricsEndpointUsage = "cf unregister-metrics-endpoint APPNAME [-p PATH]"
+    structuredFormat               = "structured-format"
+    metricsEndpoint                = "metrics-endpoint"
+)
 
 type MetricRegistrarCli struct {
     Major int
@@ -22,9 +29,14 @@ type MetricRegistrarCli struct {
     Patch int
 }
 
+type registrationFetcher interface {
+    Fetch(string, string) ([]registrations.Registration, error)
+}
+
 type cliCommandRunner interface {
-    CliCommandWithoutTerminalOutput(args ...string) ([]string, error)
+    CliCommandWithoutTerminalOutput(...string) ([]string, error)
     GetServices() ([]plugin_models.GetServices_Model, error)
+    GetApp(string) (plugin_models.GetAppModel, error)
 }
 
 func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []string) {
@@ -74,7 +86,7 @@ func RegisterLogFormat(cliConn cliCommandRunner, args []string) error {
     appName := args[0]
     logFormat := args[1]
 
-    return EnsureServiceAndBind(cliConn, appName, "structured-format", logFormat)
+    return EnsureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
 }
 
 func RegisterMetricsEndpoint(cliConn cliCommandRunner, args []string) error {
@@ -84,9 +96,53 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, args []string) error {
     appName := args[0]
     path := args[1]
 
-    return EnsureServiceAndBind(cliConn, appName, "metrics-endpoint", path)
+    return EnsureServiceAndBind(cliConn, appName, metricsEndpoint, path)
 }
 
+func UnregisterLogFormat(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
+    if len(args) < 1 {
+        return errors.New("usage: " + unregisterLogFormatUsage)
+    }
+    appName := args[0]
+
+    return removeRegistration(appName, structuredFormat, cliConn, registrationFetcher)
+
+}
+
+func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
+    if len(args) < 1 {
+        return errors.New("usage: " + unregisterMetricsEndpointUsage)
+    }
+    appName := args[0]
+
+    return removeRegistration(appName, metricsEndpoint, cliConn, registrationFetcher)
+}
+
+func removeRegistration(appName, registrationType string, cliConn cliCommandRunner, registrationFetcher registrationFetcher) error {
+    app, err := cliConn.GetApp(appName)
+    if err != nil {
+        return err
+    }
+    existingServices, err := registrationFetcher.Fetch(app.Guid, registrationType)
+    if err != nil {
+        return err
+    }
+    for _, s := range existingServices {
+        _, err = cliConn.CliCommandWithoutTerminalOutput("unbind-service", appName, s.Name)
+        if err != nil {
+            return err
+        }
+        if s.NumberOfBindings == 1 {
+            _, err = cliConn.CliCommandWithoutTerminalOutput("delete-service", s.Name, "-f")
+            if err != nil {
+                return err
+            }
+        }
+    }
+    return nil
+}
+
+//TODO shouldn't be exported
 func EnsureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, config string) error {
     cleanedConfig := strings.Trim(strings.Replace(config, "/", "-", -1), "-")
     serviceName := serviceProtocol + "-" + cleanedConfig
