@@ -276,6 +276,136 @@ var _ = Describe("CLI", func() {
             Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
         })
     })
+
+    Context("UnregisterMetricsEndpoint", func() {
+        It("unbinds app from all metrics endpoints", func() {
+            cliConnection := newMockCliConnection()
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.registrations = []registrations.Registration{
+                {
+                    Name:             "service1",
+                    Type:             "metrics-endpoint",
+                    Config:           ":9090/metrics",
+                    NumberOfBindings: 2,
+                },
+                {
+                    Name:             "service2",
+                    Type:             "metrics-endpoint",
+                    Config:           ":9090/metrics",
+                    NumberOfBindings: 2,
+                },
+            }
+
+            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service1",
+            )))
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service2",
+            )))
+        })
+
+        It("deletes service if no more apps bound", func() {
+            cliConnection := newMockCliConnection()
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.registrations = []registrations.Registration{
+                {
+                    Name:             "service1",
+                    Type:             "metrics-endpoint",
+                    Config:           ":9090/metrics",
+                    NumberOfBindings: 1,
+                },
+            }
+
+            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service1",
+            )))
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "delete-service",
+                "service1",
+                "-f",
+            )))
+        })
+
+        It("doesn't unbind services if registration fetcher doesn't find any", func() {
+            cliConnection := newMockCliConnection()
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.registrations = nil
+
+            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
+        })
+
+        It("returns error if no app name is provided", func() {
+            cliConnection := newMockCliConnection()
+            registrationFetcher := newMockRegistrationFetcher()
+
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, nil)).ToNot(Succeed())
+        })
+
+        It("returns error if getting app info fails", func() {
+            cliConnection := newMockCliConnection()
+            cliConnection.getAppError = errors.New("expected")
+            registrationFetcher := newMockRegistrationFetcher()
+
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+        })
+
+        It("returns error if unbinding service fails", func() {
+            cliConnection := newMockCliConnection()
+            cliConnection.cliErrorCommand = "unbind-service"
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.registrations = []registrations.Registration{
+                {
+                    Name:             "service1",
+                    Type:             "metrics-endpoint",
+                    Config:           "/metrics",
+                    NumberOfBindings: 1,
+                },
+            }
+
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+        })
+
+        It("returns error if deleting service fails", func() {
+            cliConnection := newMockCliConnection()
+            cliConnection.cliErrorCommand = "delete-service"
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.registrations = []registrations.Registration{
+                {
+                    Name:             "service1",
+                    Type:             "metrics-endpoint",
+                    Config:           "/metrics",
+                    NumberOfBindings: 1,
+                },
+            }
+
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+        })
+
+        It("returns an error if registration fetcher returns an error", func() {
+            cliConnection := newMockCliConnection()
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.fetchError = errors.New("expected")
+
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+        })
+    })
 })
 
 type mockCliConnection struct {

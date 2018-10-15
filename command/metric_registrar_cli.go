@@ -18,6 +18,7 @@ const (
     registerLogFormatUsage         = "cf register-log-format APPNAME <json|DogStatsD>"
     registerMetricsEndpointUsage   = "cf register-metrics-endpoint APPNAME PATH"
     unregisterLogFormatUsage       = "cf unregister-log-format APPNAME [-f FORMAT]"
+    unregisterMetricsEndpointUsage = "cf unregister-metrics-endpoint APPNAME [-p PATH]"
     structuredFormat               = "structured-format"
     metricsEndpoint                = "metrics-endpoint"
 )
@@ -104,16 +105,28 @@ func UnregisterLogFormat(registrationFetcher registrationFetcher, cliConn cliCom
     }
     appName := args[0]
 
+    return removeRegistration(appName, structuredFormat, cliConn, registrationFetcher)
+
+}
+
+func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
+    if len(args) < 1 {
+        return errors.New("usage: " + unregisterMetricsEndpointUsage)
+    }
+    appName := args[0]
+
+    return removeRegistration(appName, metricsEndpoint, cliConn, registrationFetcher)
+}
+
+func removeRegistration(appName, registrationType string, cliConn cliCommandRunner, registrationFetcher registrationFetcher) error {
     app, err := cliConn.GetApp(appName)
     if err != nil {
         return err
     }
-
-    existingServices, err := registrationFetcher.Fetch(app.Guid, structuredFormat)
+    existingServices, err := registrationFetcher.Fetch(app.Guid, registrationType)
     if err != nil {
         return err
     }
-
     for _, s := range existingServices {
         _, err = cliConn.CliCommandWithoutTerminalOutput("unbind-service", appName, s.Name)
         if err != nil {

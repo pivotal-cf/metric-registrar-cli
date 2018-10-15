@@ -13,9 +13,7 @@ type cliConn interface {
 }
 
 type servicesResponse struct {
-    Resources []struct {
-        Entity serviceEntity `json:"entity"`
-    } `json:"resources"`
+    Entity serviceEntity `json:"entity"`
 }
 
 type serviceEntity struct {
@@ -25,9 +23,7 @@ type serviceEntity struct {
 }
 
 type bindingsResponse struct {
-    Resources []struct {
-        Entity bindingEntity `json:"entity"`
-    } `json:"resources"`
+    Entity bindingEntity `json:"entity"`
 }
 
 type bindingEntity struct {
@@ -56,7 +52,7 @@ func (f *Fetcher) Fetch(appGuid, registrationType string) ([]Registration, error
     }
 
     var result []Registration
-    for _, s := range services.Resources {
+    for _, s := range services {
         r, isRegistration := registration(s.Entity)
         if isRegistration && r.Type == registrationType {
             bindings, err := f.serviceBindings(s.Entity.ServiceBindingsUrl)
@@ -67,7 +63,7 @@ func (f *Fetcher) Fetch(appGuid, registrationType string) ([]Registration, error
                 continue
             }
 
-            r.NumberOfBindings = len(bindings.Resources)
+            r.NumberOfBindings = len(bindings)
             result = append(result, r)
         }
     }
@@ -75,19 +71,23 @@ func (f *Fetcher) Fetch(appGuid, registrationType string) ([]Registration, error
     return result, nil
 }
 
-func (f *Fetcher) getServices(appGuid string) (services servicesResponse, err error) {
+func (f *Fetcher) getServices(appGuid string) (services []servicesResponse, err error) {
     space, err := f.cliConn.GetCurrentSpace()
     if err != nil {
         return services, err
     }
 
     path := fmt.Sprintf("/v2/user_provided_service_instances?q=space_guid:%s", space.Guid)
-    resp, err := f.cliConn.CliCommandWithoutTerminalOutput("curl", path)
-    if err != nil {
-        return services, err
-    }
+    err = f.getPagedResource(path, func(messages json.RawMessage) error {
+        var page []servicesResponse
 
-    err = json.Unmarshal([]byte(strings.Join(resp, "")), &services)
+        err := json.Unmarshal(messages, &page)
+        if err != nil {
+            return err
+        }
+        services = append(services, page...)
+        return nil
+    })
     return services, err
 }
 
@@ -104,8 +104,8 @@ func registration(e serviceEntity) (Registration, bool) {
     }, true
 }
 
-func (f *Fetcher) isBound(appGuid string, bindings bindingsResponse) bool {
-    for _, b := range bindings.Resources {
+func (f *Fetcher) isBound(appGuid string, bindings []bindingsResponse) bool {
+    for _, b := range bindings {
         if b.Entity.AppGuid == appGuid {
             return true
         }
@@ -113,17 +113,59 @@ func (f *Fetcher) isBound(appGuid string, bindings bindingsResponse) bool {
     return false
 }
 
-func (f *Fetcher) serviceBindings(serviceBindingsUrl string) (bindings bindingsResponse, err error) {
-    resp, err := f.cliConn.CliCommandWithoutTerminalOutput("curl", serviceBindingsUrl)
-    if err != nil {
-        return bindings, err
+func (f *Fetcher) serviceBindings(serviceBindingsUrl string) (bindings []bindingsResponse, err error) {
+    err = f.getPagedResource(serviceBindingsUrl, func(messages json.RawMessage) error {
+        var page []bindingsResponse
+
+        err := json.Unmarshal(messages, &page)
+        if err != nil {
+            return err
+        }
+        bindings = append(bindings, page...)
+        return nil
+    })
+    return bindings, err
+}
+
+type accumulator func(json.RawMessage) error
+
+type paginatedResp struct {
+    Resources json.RawMessage `json:"resources"`
+    NextUrl   *string         `json:"next_url"`
+}
+
+func (f *Fetcher) getPagedResource(path string, a accumulator) error {
+    var err error
+    for path != "" {
+        path, err = f.getPage(path, a)
+        if err != nil {
+            return err
+        }
     }
 
-    err = json.Unmarshal([]byte(strings.Join(resp, "")), &bindings)
+    return nil
+}
+
+func (f *Fetcher) getPage(path string, a accumulator) (string, error) {
+    resp, err := f.cliConn.CliCommandWithoutTerminalOutput("curl", path)
     if err != nil {
-        return bindings, err
+        return "", err
     }
 
-    return bindings, nil
+    var page paginatedResp
+    err = json.Unmarshal([]byte(strings.Join(resp, "")), &page)
+    if err != nil {
+        return "", err
+    }
 
+    err = a(page.Resources)
+    if err != nil {
+        return "", err
+    }
+
+    if page.NextUrl != nil {
+        return *page.NextUrl, nil
+    }
+
+    return "", nil
 }

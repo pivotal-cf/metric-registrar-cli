@@ -25,7 +25,33 @@ var _ = Describe("Fetcher", func() {
         }))
     })
 
-    XIt("paging")
+    It("handles paging", func() {
+        cliConn := newMockCliConnection()
+        fetcher := registrations.NewFetcher(cliConn)
+
+        cliConn.curlResponses["user_provided_service_instances"] = []string{validServicesPage0, validServices}
+        cliConn.curlResponses["service_bindings"] = []string{
+            validBindingsPage0, validBindings,
+            validBindings,
+        }
+
+        s, err := fetcher.Fetch("app-guid", "structured-format")
+        Expect(err).ToNot(HaveOccurred())
+        Expect(s).To(ConsistOf(
+            registrations.Registration{
+                Name:             "structured-format-service-0",
+                Type:             "structured-format",
+                Config:           "json",
+                NumberOfBindings: 3,
+            },
+            registrations.Registration{
+                Name:             "structured-format-service",
+                Type:             "structured-format",
+                Config:           "json",
+                NumberOfBindings: 2,
+            },
+        ))
+    })
 
     DescribeTable("errors", func(modify func(*mockCliConnection)) {
         cliConn := newMockCliConnection()
@@ -42,29 +68,29 @@ var _ = Describe("Fetcher", func() {
             cliConn.curlErrors["user_provided_service_instances"] = errors.New("expected")
         }),
         Entry("getting service instances returns invalid JSON", func(cliConn *mockCliConnection) {
-            cliConn.curlResponses["user_provided_service_instances"] = `{invalid]`
+            cliConn.curlResponses["user_provided_service_instances"] = []string{`{invalid]`}
         }),
 
         Entry("getting service bindings fails", func(cliConn *mockCliConnection) {
             cliConn.curlErrors["service_bindings"] = errors.New("expected")
         }),
         Entry("getting service bindings returns invalid JSON", func(cliConn *mockCliConnection) {
-            cliConn.curlResponses["service_bindings"] = `{invalid]`
+            cliConn.curlResponses["service_bindings"] = []string{`{invalid]`}
         }),
     )
 })
 
 type mockCliConnection struct {
     getCurrentSpaceError error
-    curlResponses        map[string]string
+    curlResponses        map[string][]string
     curlErrors           map[string]error
 }
 
 func newMockCliConnection() *mockCliConnection {
     return &mockCliConnection{
-        curlResponses: map[string]string{
-            "user_provided_service_instances": validServices,
-            "service_bindings":                validBindings,
+        curlResponses: map[string][]string{
+            "user_provided_service_instances": {validServices},
+            "service_bindings":                {validBindings},
         },
         curlErrors: map[string]error{},
     }
@@ -93,11 +119,16 @@ func (c *mockCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]s
             return strings.Split(emptyBindings, "\n"), c.curlErrors[resource]
         }
     }
-    return strings.Split(c.curlResponses[resource], "\n"), c.curlErrors[resource]
+
+    resp := c.curlResponses[resource][0]
+    c.curlResponses[resource] = c.curlResponses[resource][1:]
+
+    return strings.Split(resp, "\n"), c.curlErrors[resource]
 }
 
 const (
     validServices = `{
+  "next_url": null,
   "resources": [
     {
       "entity": {
@@ -122,8 +153,21 @@ const (
     }
   ]
 }`
+    validServicesPage0 = `{
+  "next_url": "/v2/user_provided_service_instances?q=space_guid:space-guid",
+  "resources": [
+    {
+      "entity": {
+        "name": "structured-format-service-0",
+        "syslog_drain_url": "structured-format://json",
+        "service_bindings_url": "/v2/user_provided_service_instances/guid/service_bindings"
+      }
+    }
+  ]
+}`
 
     validBindings = `{
+  "next_url": null,
   "resources": [
     {
       "entity": {
@@ -133,6 +177,17 @@ const (
     {
       "entity": {
         "app_guid": "other"
+      }
+    }
+  ]
+}`
+
+    validBindingsPage0 = `{
+  "next_url": "/v2/user_provided_service_instances/guid/service_bindings",
+  "resources": [
+    {
+      "entity": {
+        "app_guid": "some-app-guid"
       }
     }
   ]
