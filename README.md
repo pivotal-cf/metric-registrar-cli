@@ -13,7 +13,7 @@ Registering a structured log format will allow for structured logs of that forma
 ```
 cf register-log-format --help
 NAME:
-   register-log-format - This will register bound applications so that structured logs of the given format can be parsed
+   register-log-format - Register bound applications so that structured logs of the given format can be parsed
 
 USAGE:
    cf register-log-format APPNAME <json|DogStatsD>
@@ -25,7 +25,7 @@ Registering a metrics endpoint will allow for Prometheus Exposition metrics from
 ```
 cf register-metrics-endpoint --help
 NAME:
-   register-metrics-endpoint - This will register your metrics endpoint which will then be scraped at the interval defined at deploy
+   register-metrics-endpoint - Register a metrics endpoint which will be scraped at the interval defined at deploy
 
 USAGE:
    cf register-metrics-endpoint APPNAME PATH

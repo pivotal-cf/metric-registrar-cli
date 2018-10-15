@@ -51,14 +51,14 @@ func (c MetricRegistrarCli) GetMetadata() plugin.PluginMetadata {
         Commands: []plugin.Command{
             {
                 Name:     registerLogFormatCommand,
-                HelpText: "This will register bound applications so that structured logs of the given format can be parsed",
+                HelpText: "Register bound applications so that structured logs of the given format can be parsed",
                 UsageDetails: plugin.Usage{
                     Usage: registerLogFormatUsage,
                 },
             },
             {
                 Name:     registerMetricsEndpointCommand,
-                HelpText: "This will register your metrics endpoint which will then be scraped at the interval defined at deploy",
+                HelpText: "Register a metrics endpoint which will be scraped at the interval defined at deploy",
                 UsageDetails: plugin.Usage{
                     Usage: registerMetricsEndpointUsage,
                 },
