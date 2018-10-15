@@ -13,7 +13,6 @@ import (
 var _ = Describe("Fetcher", func() {
     It("Fetches registrations", func() {
         cliConn := newMockCliConnection()
-        cliConn.curlResponses["user_provided_service_instances"] = validServices
         fetcher := registrations.NewFetcher(cliConn)
 
         s, err := fetcher.Fetch("app-guid", "structured-format")
@@ -30,10 +29,9 @@ var _ = Describe("Fetcher", func() {
 
     DescribeTable("errors", func(modify func(*mockCliConnection)) {
         cliConn := newMockCliConnection()
-        cliConn.curlResponses["user_provided_service_instances"] = validServices
         modify(cliConn)
-
         fetcher := registrations.NewFetcher(cliConn)
+
         _, err := fetcher.Fetch("app-guid", "structured-format")
         Expect(err).To(HaveOccurred())
     },
