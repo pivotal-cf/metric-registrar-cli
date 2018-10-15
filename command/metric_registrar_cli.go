@@ -13,7 +13,7 @@ import (
 const pluginName = "metric-registrar"
 const registerLogFormatCommand = "register-log-format"
 const registerMetricsEndpointCommand = "register-metrics-endpoint"
-const registerLogFormatUsage = "cf register-log-format APPNAME FORMAT"
+const registerLogFormatUsage = "cf register-log-format APPNAME <json|DogStatsD>"
 const registerMetricsEndpointUsage = "cf register-metrics-endpoint APPNAME PATH"
 
 type MetricRegistrarCli struct {
@@ -79,7 +79,7 @@ func RegisterLogFormat(cliConn cliCommandRunner, args []string) error {
 
 func RegisterMetricsEndpoint(cliConn cliCommandRunner, args []string) error {
     if len(args) != 2 {
-        return errors.New("Usage: " + registerMetricsEndpointUsage)
+        return errors.New("usage: " + registerMetricsEndpointUsage)
     }
     appName := args[0]
     path := args[1]

@@ -16,9 +16,8 @@ NAME:
    register-log-format - This will register bound applications so that structured logs of the given format can be parsed
 
 USAGE:
-   cf register-log-format APPNAME FORMAT
+   cf register-log-format APPNAME <json|DogStatsD>
 ```
-FORMAT should be either `json` or `DogStatsD`
 
 ### Metrics Endpoint
 Registering a metrics endpoint will allow for Prometheus Exposition metrics from the given path to be parsed and emitted to Loggregator.
