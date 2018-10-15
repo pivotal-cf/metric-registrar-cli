@@ -5,6 +5,7 @@ import (
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
     "github.com/onsi/gomega/gstruct"
+    "github.com/pivotal-cf/metric-registrar-cli/registrations"
 
     "code.cloudfoundry.org/cli/plugin/models"
     "errors"
@@ -76,7 +77,9 @@ var _ = Describe("CLI", func() {
 
         It("doesn't create a service if service already present", func() {
             cliConnection := newMockCliConnection()
-            cliConnection.serviceName = "protocol-config"
+            cliConnection.services = []plugin_models.GetServices_Model{
+                {Name: "protocol-config"},
+            }
 
             err := command.EnsureServiceAndBind(cliConnection, "app-name", "protocol", "config")
             Expect(err).ToNot(HaveOccurred())
@@ -97,19 +100,19 @@ var _ = Describe("CLI", func() {
             )))
         })
 
-        It("returns error if creating the service fails", func() {
+        It("returns error if getting the service fails", func() {
             cliConnection := newMockCliConnection()
             cliConnection.getServicesError = errors.New("error")
 
-            Expect(command.EnsureServiceAndBind(cliConnection, "app-name", "protocol", "config")).Should(HaveOccurred())
+            Expect(command.EnsureServiceAndBind(cliConnection, "app-name", "protocol", "config")).ToNot(Succeed())
             Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
         })
 
         It("returns error if creating the service fails", func() {
             cliConnection := newMockCliConnection()
-            cliConnection.cliCommandErrorCommand = "create-user-provided-service"
+            cliConnection.cliErrorCommand = "create-user-provided-service"
 
-            Expect(command.EnsureServiceAndBind(cliConnection, "app-name", "protocol", "config")).Should(HaveOccurred())
+            Expect(command.EnsureServiceAndBind(cliConnection, "app-name", "protocol", "config")).ToNot(Succeed())
 
             Expect(cliConnection.cliCommandsCalled).To(Receive(ContainElement("create-user-provided-service")))
             Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
@@ -117,9 +120,9 @@ var _ = Describe("CLI", func() {
 
         It("returns error if binding fails", func() {
             cliConnection := newMockCliConnection()
-            cliConnection.cliCommandErrorCommand = "bind-service"
+            cliConnection.cliErrorCommand = "bind-service"
 
-            Expect(command.EnsureServiceAndBind(cliConnection, "app-name", "protocol", "config")).Should(HaveOccurred())
+            Expect(command.EnsureServiceAndBind(cliConnection, "app-name", "protocol", "config")).ToNot(Succeed())
 
             Expect(cliConnection.cliCommandsCalled).To(Receive(ContainElement("create-user-provided-service")))
             Expect(cliConnection.cliCommandsCalled).To(Receive(ContainElement("bind-service")))
@@ -142,20 +145,117 @@ var _ = Describe("CLI", func() {
             ))
         })
     })
+
+    Context("UnregisterLogFormat", func() {
+        It("unbinds app from all log services", func() {
+            cliConnection := newMockCliConnection()
+            cliConnection.services = []plugin_models.GetServices_Model{
+                {Name: "service1", ApplicationNames: []string{"app-name", "other-app-name"}},
+                {Name: "service2", ApplicationNames: []string{"app-name", "other-app-name"}},
+            }
+
+            registrationFetcher := newMockRegistrationFetcher()
+
+            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service1",
+            )))
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service2",
+            )))
+        })
+
+        It("deletes service if no more apps bound", func() {
+            cliConnection := newMockCliConnection()
+            cliConnection.services = []plugin_models.GetServices_Model{
+                {Name: "service1", ApplicationNames: []string{"app-name"}},
+            }
+
+            registrationFetcher := newMockRegistrationFetcher()
+            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service1",
+            )))
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "delete-service",
+                "service1",
+                "-f",
+            )))
+        })
+
+        It("doesn't unbind non-log-format services", func() {
+            cliConnection := newMockCliConnection()
+            cliConnection.services = []plugin_models.GetServices_Model{
+                {
+                    Guid:        "",
+                    Name:        "service1",
+                    ServicePlan: plugin_models.GetServices_ServicePlan{},
+                    Service: plugin_models.GetServices_ServiceFields{
+                        Name: "",
+                    },
+                    LastOperation:    plugin_models.GetServices_LastOperation{},
+                    ApplicationNames: []string{"app-name"},
+                    IsUserProvided:   false,
+                },
+            }
+
+            registrationFetcher := newMockRegistrationFetcher()
+            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
+        })
+        XIt("doesn't attempt to unbind services that aren't bound to this app")
+        XIt("returns error if number of arguments is wrong", func() {
+            cliConnection := newMockCliConnection()
+
+            Expect(command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name", "some-garbage"})).ToNot(Succeed())
+        })
+    })
+
+    XContext("UnregisterMetricsEndpoint", func() {
+        It("creates a service", func() {
+            cliConnection := newMockCliConnection()
+
+            err := command.RegisterMetricsEndpoint(cliConnection, []string{"app-name", "endpoint"})
+            Expect(err).ToNot(HaveOccurred())
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "create-user-provided-service",
+                "metrics-endpoint-endpoint",
+                "-l",
+                "metrics-endpoint://endpoint",
+            )))
+        })
+
+        It("returns error if number of arguments is wrong", func() {
+            cliConnection := newMockCliConnection()
+
+            Expect(command.RegisterMetricsEndpoint(cliConnection, []string{"app-name", "endpoint", "some-garbage"})).ToNot(Succeed())
+        })
+    })
 })
 
 type mockCliConnection struct {
-    cliCommandsCalled      chan []string
-    serviceName            string
-    cliCommandErrorCommand string
-    getServicesError       error
+    cliCommandsCalled chan []string
+    services          []plugin_models.GetServices_Model
+    cliErrorCommand   string
+    getServicesError  error
 }
 
 func (c *mockCliConnection) GetServices() ([]plugin_models.GetServices_Model, error) {
-    if c.serviceName != "" {
-        return []plugin_models.GetServices_Model{{Name: c.serviceName}}, nil
-    }
-    return nil, c.getServicesError
+    return c.services, c.getServicesError
 }
 
 func newMockCliConnection() *mockCliConnection {
@@ -165,9 +265,35 @@ func newMockCliConnection() *mockCliConnection {
 }
 
 func (c *mockCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
+    if args[0] == "curl" {
+        return []string{
+
+        }, nil
+    }
+
     c.cliCommandsCalled <- args
-    if args[0] == c.cliCommandErrorCommand {
+    if args[0] == c.cliErrorCommand {
         return nil, errors.New("error")
     }
+    return nil, nil
+}
+
+func (c *mockCliConnection) GetApp(string) (plugin_models.GetAppModel, error) {
+    return plugin_models.GetAppModel{
+        Guid: "app-guid",
+    }, nil //TODO err
+}
+
+type mockRegistrationFetcher struct {
+}
+
+func newMockRegistrationFetcher() *mockRegistrationFetcher {
+    return &mockRegistrationFetcher{
+
+    }
+}
+
+func (f *mockRegistrationFetcher) Fetch(appGuid, registrationType string) ([]registrations.Registration, error) {
+    Expect(appGuid).To(Equal("app-guid"))
     return nil, nil
 }

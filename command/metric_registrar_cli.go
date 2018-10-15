@@ -3,6 +3,7 @@ package command
 import (
     "code.cloudfoundry.org/cli/plugin"
     "code.cloudfoundry.org/cli/plugin/models"
+    "github.com/pivotal-cf/metric-registrar-cli/registrations"
 
     "errors"
     "fmt"
@@ -22,9 +23,14 @@ type MetricRegistrarCli struct {
     Patch int
 }
 
+type registrationFetcher interface {
+    Fetch(string, string) ([]registrations.Registration, error)
+}
+
 type cliCommandRunner interface {
-    CliCommandWithoutTerminalOutput(args ...string) ([]string, error)
+    CliCommandWithoutTerminalOutput(...string) ([]string, error)
     GetServices() ([]plugin_models.GetServices_Model, error)
+    GetApp(string) (plugin_models.GetAppModel, error)
 }
 
 func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []string) {
@@ -87,6 +93,23 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, args []string) error {
     return EnsureServiceAndBind(cliConn, appName, "metrics-endpoint", path)
 }
 
+func UnregisterLogFormat(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
+    //existingServices, err := registrationFetcher.GetServices()
+    //if err != nil {
+    //    //TODO
+    //}
+    //appName := args[0]
+    //
+    //for _, s := range existingServices {
+    //    cliConn.CliCommandWithoutTerminalOutput("unbind-service", appName, s.Name) //TODO err
+    //    if len(s.ApplicationNames) == 1 && s.ApplicationNames[0] == appName {
+    //        cliConn.CliCommandWithoutTerminalOutput("delete-service", s.Name, "-f") //TODO err
+    //    }
+    //}
+    return nil
+}
+
+//TODO shouldn't be exported
 func EnsureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, config string) error {
     cleanedConfig := strings.Trim(strings.Replace(config, "/", "-", -1), "-")
     serviceName := serviceProtocol + "-" + cleanedConfig
