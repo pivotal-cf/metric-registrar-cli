@@ -3,6 +3,7 @@ package command
 import (
     "code.cloudfoundry.org/cli/plugin"
     "code.cloudfoundry.org/cli/plugin/models"
+    "github.com/jessevdk/go-flags"
     "github.com/pivotal-cf/metric-registrar-cli/registrations"
 
     "errors"
@@ -12,15 +13,19 @@ import (
 )
 
 const (
-    pluginName                     = "metric-registrar"
-    registerLogFormatCommand       = "register-log-format"
-    registerMetricsEndpointCommand = "register-metrics-endpoint"
+    pluginName                       = "metric-registrar"
+    registerLogFormatCommand         = "register-log-format"
+    registerMetricsEndpointCommand   = "register-metrics-endpoint"
+    unregisterLogFormatCommand       = "unregister-log-format"
+    unregisterMetricsEndpointCommand = "unregister-metrics-endpoint"
+
     registerLogFormatUsage         = "cf register-log-format APPNAME <json|DogStatsD>"
     registerMetricsEndpointUsage   = "cf register-metrics-endpoint APPNAME PATH"
     unregisterLogFormatUsage       = "cf unregister-log-format APPNAME [-f FORMAT]"
     unregisterMetricsEndpointUsage = "cf unregister-metrics-endpoint APPNAME [-p PATH]"
-    structuredFormat               = "structured-format"
-    metricsEndpoint                = "metrics-endpoint"
+
+    structuredFormat = "structured-format"
+    metricsEndpoint  = "metrics-endpoint"
 )
 
 type MetricRegistrarCli struct {
@@ -46,6 +51,14 @@ func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []strin
         exitIfErr(err)
     case registerMetricsEndpointCommand:
         err := RegisterMetricsEndpoint(cliConnection, args[1:])
+        exitIfErr(err)
+    case unregisterLogFormatCommand:
+        registrationFetcher := registrations.NewFetcher(cliConnection)
+        err := UnregisterLogFormat(registrationFetcher, cliConnection, args[1:])
+        exitIfErr(err)
+    case unregisterMetricsEndpointCommand:
+        registrationFetcher := registrations.NewFetcher(cliConnection)
+        err := UnregisterMetricsEndpoint(registrationFetcher, cliConnection, args[1:])
         exitIfErr(err)
     case "CLI-MESSAGE-UNINSTALL":
         // do nothing
@@ -75,6 +88,26 @@ func (c MetricRegistrarCli) GetMetadata() plugin.PluginMetadata {
                     Usage: registerMetricsEndpointUsage,
                 },
             },
+            {
+                Name:     unregisterLogFormatCommand,
+                HelpText: "Unregister log formats",
+                UsageDetails: plugin.Usage{
+                    Usage: unregisterLogFormatUsage,
+                    Options: map[string]string{
+                        "-f": "unregister only the specified log format",
+                    },
+                },
+            },
+            {
+                Name:     unregisterMetricsEndpointCommand,
+                HelpText: "Unregister metrics endpoints",
+                UsageDetails: plugin.Usage{
+                    Usage: unregisterMetricsEndpointUsage,
+                    Options: map[string]string{
+                        "-p": "unregister only the specified path",
+                    },
+                },
+            },
         },
     }
 }
@@ -100,45 +133,82 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, args []string) error {
 }
 
 func UnregisterLogFormat(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
-    if len(args) < 1 {
+    type opts struct {
+        Format string `short:"f" long:"format"`
+    }
+
+    var options opts
+    argsNoFlags, err := flags.ParseArgs(&options, args)
+    if err != nil {
+        return err
+    }
+
+    if len(argsNoFlags) != 1 {
         return errors.New("usage: " + unregisterLogFormatUsage)
     }
-    appName := args[0]
+    appName := argsNoFlags[0]
 
-    return removeRegistration(appName, structuredFormat, cliConn, registrationFetcher)
+    return removeRegistrations(appName, structuredFormat, options.Format, cliConn, registrationFetcher)
 
 }
 
 func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
-    if len(args) < 1 {
+    type opts struct {
+        Path string `short:"p" long:"path"`
+    }
+
+    var options opts
+    argsNoFlags, err := flags.ParseArgs(&options, args)
+    if err != nil {
+        return err
+    }
+
+    if len(argsNoFlags) != 1 {
         return errors.New("usage: " + unregisterMetricsEndpointUsage)
     }
-    appName := args[0]
+    appName := argsNoFlags[0]
 
-    return removeRegistration(appName, metricsEndpoint, cliConn, registrationFetcher)
+    return removeRegistrations(appName, metricsEndpoint, options.Path, cliConn, registrationFetcher)
 }
 
-func removeRegistration(appName, registrationType string, cliConn cliCommandRunner, registrationFetcher registrationFetcher) error {
+func removeRegistrations(appName, registrationType, config string, cliConn cliCommandRunner, registrationFetcher registrationFetcher) error {
     app, err := cliConn.GetApp(appName)
     if err != nil {
         return err
     }
-    existingServices, err := registrationFetcher.Fetch(app.Guid, registrationType)
+
+    existingRegistrations, err := registrationFetcher.Fetch(app.Guid, registrationType)
     if err != nil {
         return err
     }
-    for _, s := range existingServices {
-        _, err = cliConn.CliCommandWithoutTerminalOutput("unbind-service", appName, s.Name)
+
+    for _, registration := range existingRegistrations {
+        err := removeRegistration(appName, config, registration, cliConn)
         if err != nil {
             return err
         }
-        if s.NumberOfBindings == 1 {
-            _, err = cliConn.CliCommandWithoutTerminalOutput("delete-service", s.Name, "-f")
-            if err != nil {
-                return err
-            }
+    }
+
+    return nil
+}
+
+func removeRegistration(appName, config string, registration registrations.Registration, cliConn cliCommandRunner) error {
+    if config != "" && config != registration.Config {
+        return nil
+    }
+
+    _, err := cliConn.CliCommandWithoutTerminalOutput("unbind-service", appName, registration.Name)
+    if err != nil {
+        return err
+    }
+
+    if registration.NumberOfBindings == 1 {
+        _, err = cliConn.CliCommandWithoutTerminalOutput("delete-service", registration.Name, "-f")
+        if err != nil {
+            return err
         }
     }
+
     return nil
 }
 

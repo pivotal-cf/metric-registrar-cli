@@ -143,6 +143,8 @@ var _ = Describe("CLI", func() {
             Expect(meta.Commands).To(ConsistOf(
                 gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("register-log-format")}),
                 gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("register-metrics-endpoint")}),
+                gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("unregister-log-format")}),
+                gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("unregister-metrics-endpoint")}),
             ))
         })
     })
@@ -208,6 +210,40 @@ var _ = Describe("CLI", func() {
                 "service1",
                 "-f",
             )))
+        })
+
+        It("only unbinds specified service if format is set", func() {
+            cliConnection := newMockCliConnection()
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.registrations = []registrations.Registration{
+                {
+                    Name:             "service1",
+                    Type:             "log-format",
+                    Config:           "json",
+                    NumberOfBindings: 2,
+                },
+                {
+                    Name:             "service2",
+                    Type:             "log-format",
+                    Config:           "not-this-one",
+                    NumberOfBindings: 2,
+                },
+            }
+
+            err := command.UnregisterLogFormat(
+                registrationFetcher,
+                cliConnection,
+                []string{"app-name", "-f", "json"},
+            )
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service1",
+            )))
+
+            Expect(cliConnection.cliCommandsCalled).To(BeEmpty())
         })
 
         It("doesn't unbind services if registration fetcher doesn't find any", func() {
@@ -338,6 +374,40 @@ var _ = Describe("CLI", func() {
                 "service1",
                 "-f",
             )))
+        })
+
+        It("only unbinds specified service if path is set", func() {
+            cliConnection := newMockCliConnection()
+            registrationFetcher := newMockRegistrationFetcher()
+            registrationFetcher.registrations = []registrations.Registration{
+                {
+                    Name:             "service1",
+                    Type:             "metrics-endpoint",
+                    Config:           ":9090/metrics",
+                    NumberOfBindings: 2,
+                },
+                {
+                    Name:             "service2",
+                    Type:             "metrics-endpoint",
+                    Config:           ":9090/not-this-one",
+                    NumberOfBindings: 2,
+                },
+            }
+
+            err := command.UnregisterMetricsEndpoint(
+                registrationFetcher,
+                cliConnection,
+                []string{"app-name", "-p", ":9090/metrics"},
+            )
+            Expect(err).ToNot(HaveOccurred())
+
+            Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+                "unbind-service",
+                "app-name",
+                "service1",
+            )))
+
+            Expect(cliConnection.cliCommandsCalled).To(BeEmpty())
         })
 
         It("doesn't unbind services if registration fetcher doesn't find any", func() {
