@@ -73,7 +73,7 @@ var _ = Describe("Register", func() {
 
 		It("doesn't create a service if service already present", func() {
 			cliConnection := newMockCliConnection()
-			cliConnection.services = []plugin_models.GetServices_Model{
+			cliConnection.getServicesResult = []plugin_models.GetServices_Model{
 				{Name: "protocol-config"},
 			}
 

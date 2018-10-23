@@ -16,11 +16,13 @@ const (
     registerMetricsEndpointCommand   = "register-metrics-endpoint"
     unregisterLogFormatCommand       = "unregister-log-format"
     unregisterMetricsEndpointCommand = "unregister-metrics-endpoint"
+    listLogFormatsCommand            = "registered-log-formats"
 
     registerLogFormatUsage         = "cf register-log-format APPNAME <json|DogStatsD>"
     registerMetricsEndpointUsage   = "cf register-metrics-endpoint APPNAME PATH"
     unregisterLogFormatUsage       = "cf unregister-log-format APPNAME [-f FORMAT]"
     unregisterMetricsEndpointUsage = "cf unregister-metrics-endpoint APPNAME [-p PATH]"
+    listLogFormatsUsage            = "cf registered-log-formats"
 
     structuredFormat = "structured-format"
     metricsEndpoint  = "metrics-endpoint"
@@ -34,12 +36,14 @@ type MetricRegistrarCli struct {
 
 type registrationFetcher interface {
     Fetch(string, string) ([]registrations.Registration, error)
+    FetchAll(string) (map[string][]registrations.Registration, error)
 }
 
 type cliCommandRunner interface {
     CliCommandWithoutTerminalOutput(...string) ([]string, error)
     GetServices() ([]plugin_models.GetServices_Model, error)
     GetApp(string) (plugin_models.GetAppModel, error)
+    GetApps() ([]plugin_models.GetAppsModel, error)
 }
 
 func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []string) {
@@ -57,6 +61,10 @@ func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []strin
     case unregisterMetricsEndpointCommand:
         registrationFetcher := registrations.NewFetcher(cliConnection)
         err := UnregisterMetricsEndpoint(registrationFetcher, cliConnection, args[1:])
+        exitIfErr(err)
+    case listLogFormatsCommand:
+        registrationFetcher := registrations.NewFetcher(cliConnection)
+        err := ListRegisteredLogFormats(os.Stdout, registrationFetcher, cliConnection)
         exitIfErr(err)
     case "CLI-MESSAGE-UNINSTALL":
         // do nothing

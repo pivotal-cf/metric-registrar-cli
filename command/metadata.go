@@ -45,6 +45,13 @@ func (c MetricRegistrarCli) GetMetadata() plugin.PluginMetadata {
                     },
                 },
             },
+            {
+                Name:     listLogFormatsCommand,
+                HelpText: "List log formats in space",
+                UsageDetails: plugin.Usage{
+                    Usage: listLogFormatsUsage,
+                },
+            },
         },
     }
 }

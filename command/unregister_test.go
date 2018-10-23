@@ -14,7 +14,7 @@ var _ = Describe("Unregister", func() {
         It("unbinds app from all log services", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "structured-format",
@@ -48,7 +48,7 @@ var _ = Describe("Unregister", func() {
         It("deletes service if no more apps bound", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "structured-format",
@@ -76,7 +76,7 @@ var _ = Describe("Unregister", func() {
         It("only unbinds specified service if format is set", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "log-format",
@@ -110,7 +110,7 @@ var _ = Describe("Unregister", func() {
         It("doesn't unbind services if registration fetcher doesn't find any", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = nil
+            registrationFetcher.registrations["app-guid"] = nil
 
             err := command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})
             Expect(err).ToNot(HaveOccurred())
@@ -137,7 +137,7 @@ var _ = Describe("Unregister", func() {
             cliConnection := newMockCliConnection()
             cliConnection.cliErrorCommand = "unbind-service"
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "structured-format",
@@ -153,7 +153,7 @@ var _ = Describe("Unregister", func() {
             cliConnection := newMockCliConnection()
             cliConnection.cliErrorCommand = "delete-service"
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "structured-format",
@@ -178,7 +178,7 @@ var _ = Describe("Unregister", func() {
         It("unbinds app from all metrics endpoints", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "metrics-endpoint",
@@ -212,7 +212,7 @@ var _ = Describe("Unregister", func() {
         It("deletes service if no more apps bound", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "metrics-endpoint",
@@ -240,7 +240,7 @@ var _ = Describe("Unregister", func() {
         It("only unbinds specified service if path is set", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "metrics-endpoint",
@@ -274,7 +274,7 @@ var _ = Describe("Unregister", func() {
         It("doesn't unbind services if registration fetcher doesn't find any", func() {
             cliConnection := newMockCliConnection()
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = nil
+            registrationFetcher.registrations["app-guid"] = nil
 
             err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})
             Expect(err).ToNot(HaveOccurred())
@@ -301,7 +301,7 @@ var _ = Describe("Unregister", func() {
             cliConnection := newMockCliConnection()
             cliConnection.cliErrorCommand = "unbind-service"
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "metrics-endpoint",
@@ -317,7 +317,7 @@ var _ = Describe("Unregister", func() {
             cliConnection := newMockCliConnection()
             cliConnection.cliErrorCommand = "delete-service"
             registrationFetcher := newMockRegistrationFetcher()
-            registrationFetcher.registrations = []registrations.Registration{
+            registrationFetcher.registrations["app-guid"] = []registrations.Registration{
                 {
                     Name:             "service1",
                     Type:             "metrics-endpoint",

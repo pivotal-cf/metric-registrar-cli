@@ -11,73 +11,151 @@ import (
 )
 
 var _ = Describe("Fetcher", func() {
-    It("Fetches registrations", func() {
-        cliConn := newMockCliConnection()
-        fetcher := registrations.NewFetcher(cliConn)
+    Describe("FetchAll", func() {
+        It("Fetches registrations", func() {
+            cliConn := newMockCliConnection()
+            fetcher := registrations.NewFetcher(cliConn)
 
-        s, err := fetcher.Fetch("app-guid", "structured-format")
-        Expect(err).ToNot(HaveOccurred())
-        Expect(s).To(ConsistOf(registrations.Registration{
-            Name:             "structured-format-service",
-            Type:             "structured-format",
-            Config:           "json",
-            NumberOfBindings: 2,
-        }))
-    })
-
-    It("handles paging", func() {
-        cliConn := newMockCliConnection()
-        fetcher := registrations.NewFetcher(cliConn)
-
-        cliConn.curlResponses["user_provided_service_instances"] = []string{validServicesPage0, validServices}
-        cliConn.curlResponses["service_bindings"] = []string{
-            validBindingsPage0, validBindings,
-            validBindings,
-        }
-
-        s, err := fetcher.Fetch("app-guid", "structured-format")
-        Expect(err).ToNot(HaveOccurred())
-        Expect(s).To(ConsistOf(
-            registrations.Registration{
-                Name:             "structured-format-service-0",
-                Type:             "structured-format",
-                Config:           "json",
-                NumberOfBindings: 3,
-            },
-            registrations.Registration{
+            s, err := fetcher.FetchAll("structured-format")
+            Expect(err).ToNot(HaveOccurred())
+            Expect(s).To(HaveKeyWithValue("app-guid", ConsistOf(registrations.Registration{
                 Name:             "structured-format-service",
                 Type:             "structured-format",
                 Config:           "json",
                 NumberOfBindings: 2,
-            },
-        ))
+            })))
+            Expect(s).To(HaveKeyWithValue("other", ConsistOf(registrations.Registration{
+                Name:             "structured-format-service",
+                Type:             "structured-format",
+                Config:           "json",
+                NumberOfBindings: 2,
+            })))
+        })
+
+        It("handles paging", func() {
+            cliConn := newMockCliConnection()
+            fetcher := registrations.NewFetcher(cliConn)
+
+            cliConn.curlResponses["user_provided_service_instances"] = []string{validServicesPage0, validServices}
+            cliConn.curlResponses["service_bindings"] = []string{
+                validBindingsPage0, validBindings,
+                validBindings,
+            }
+
+            s, err := fetcher.FetchAll("structured-format")
+            Expect(err).ToNot(HaveOccurred())
+            Expect(s).To(HaveKeyWithValue("app-guid", ConsistOf(
+                registrations.Registration{
+                    Name:             "structured-format-service-0",
+                    Type:             "structured-format",
+                    Config:           "json",
+                    NumberOfBindings: 3,
+                },
+                registrations.Registration{
+                    Name:             "structured-format-service",
+                    Type:             "structured-format",
+                    Config:           "json",
+                    NumberOfBindings: 2,
+                },
+            )))
+        })
+
+        DescribeTable("errors", func(modify func(*mockCliConnection)) {
+            cliConn := newMockCliConnection()
+            modify(cliConn)
+            fetcher := registrations.NewFetcher(cliConn)
+
+            _, err := fetcher.FetchAll("structured-format")
+            Expect(err).To(HaveOccurred())
+        },
+            Entry("getting space fails", func(cliConn *mockCliConnection) {
+                cliConn.getCurrentSpaceError = errors.New("expected")
+            }),
+            Entry("getting service instances fails", func(cliConn *mockCliConnection) {
+                cliConn.curlErrors["user_provided_service_instances"] = errors.New("expected")
+            }),
+            Entry("getting service instances returns invalid JSON", func(cliConn *mockCliConnection) {
+                cliConn.curlResponses["user_provided_service_instances"] = []string{`{invalid]`}
+            }),
+
+            Entry("getting service bindings fails", func(cliConn *mockCliConnection) {
+                cliConn.curlErrors["service_bindings"] = errors.New("expected")
+            }),
+            Entry("getting service bindings returns invalid JSON", func(cliConn *mockCliConnection) {
+                cliConn.curlResponses["service_bindings"] = []string{`{invalid]`}
+            }),
+        )
     })
 
-    DescribeTable("errors", func(modify func(*mockCliConnection)) {
-        cliConn := newMockCliConnection()
-        modify(cliConn)
-        fetcher := registrations.NewFetcher(cliConn)
+    Describe("Fetch", func() {
+        It("Fetches registrations", func() {
+            cliConn := newMockCliConnection()
+            fetcher := registrations.NewFetcher(cliConn)
 
-        _, err := fetcher.Fetch("app-guid", "structured-format")
-        Expect(err).To(HaveOccurred())
-    },
-        Entry("getting space fails", func(cliConn *mockCliConnection) {
-            cliConn.getCurrentSpaceError = errors.New("expected")
-        }),
-        Entry("getting service instances fails", func(cliConn *mockCliConnection) {
-            cliConn.curlErrors["user_provided_service_instances"] = errors.New("expected")
-        }),
-        Entry("getting service instances returns invalid JSON", func(cliConn *mockCliConnection) {
-            cliConn.curlResponses["user_provided_service_instances"] = []string{`{invalid]`}
-        }),
+            s, err := fetcher.Fetch("app-guid", "structured-format")
+            Expect(err).ToNot(HaveOccurred())
+            Expect(s).To(ConsistOf(registrations.Registration{
+                Name:             "structured-format-service",
+                Type:             "structured-format",
+                Config:           "json",
+                NumberOfBindings: 2,
+            }))
+        })
 
-        Entry("getting service bindings fails", func(cliConn *mockCliConnection) {
-            cliConn.curlErrors["service_bindings"] = errors.New("expected")
-        }),
-        Entry("getting service bindings returns invalid JSON", func(cliConn *mockCliConnection) {
-            cliConn.curlResponses["service_bindings"] = []string{`{invalid]`}
-        }),
-    )
+        It("handles paging", func() {
+            cliConn := newMockCliConnection()
+            fetcher := registrations.NewFetcher(cliConn)
+
+            cliConn.curlResponses["user_provided_service_instances"] = []string{validServicesPage0, validServices}
+            cliConn.curlResponses["service_bindings"] = []string{
+                validBindingsPage0, validBindings,
+                validBindings,
+            }
+
+            s, err := fetcher.Fetch("app-guid", "structured-format")
+            Expect(err).ToNot(HaveOccurred())
+            Expect(s).To(ConsistOf(
+                registrations.Registration{
+                    Name:             "structured-format-service-0",
+                    Type:             "structured-format",
+                    Config:           "json",
+                    NumberOfBindings: 3,
+                },
+                registrations.Registration{
+                    Name:             "structured-format-service",
+                    Type:             "structured-format",
+                    Config:           "json",
+                    NumberOfBindings: 2,
+                },
+            ))
+        })
+
+        DescribeTable("errors", func(modify func(*mockCliConnection)) {
+            cliConn := newMockCliConnection()
+            modify(cliConn)
+            fetcher := registrations.NewFetcher(cliConn)
+
+            _, err := fetcher.Fetch("app-guid", "structured-format")
+            Expect(err).To(HaveOccurred())
+        },
+            Entry("getting space fails", func(cliConn *mockCliConnection) {
+                cliConn.getCurrentSpaceError = errors.New("expected")
+            }),
+            Entry("getting service instances fails", func(cliConn *mockCliConnection) {
+                cliConn.curlErrors["user_provided_service_instances"] = errors.New("expected")
+            }),
+            Entry("getting service instances returns invalid JSON", func(cliConn *mockCliConnection) {
+                cliConn.curlResponses["user_provided_service_instances"] = []string{`{invalid]`}
+            }),
+
+            Entry("getting service bindings fails", func(cliConn *mockCliConnection) {
+                cliConn.curlErrors["service_bindings"] = errors.New("expected")
+            }),
+            Entry("getting service bindings returns invalid JSON", func(cliConn *mockCliConnection) {
+                cliConn.curlResponses["service_bindings"] = []string{`{invalid]`}
+            }),
+        )
+    })
 })
 
 type mockCliConnection struct {

@@ -24,6 +24,7 @@ var _ = Describe("Metadata", func() {
 				gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("register-metrics-endpoint")}),
 				gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("unregister-log-format")}),
 				gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("unregister-metrics-endpoint")}),
+				gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("registered-log-formats")}),
 			))
 		})
 	})

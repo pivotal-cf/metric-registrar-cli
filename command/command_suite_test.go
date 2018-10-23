@@ -19,15 +19,18 @@ type mockCliConnection struct {
     cliCommandsCalled chan []string
     cliErrorCommand   string
 
-    services         []plugin_models.GetServices_Model
-    getServicesError error
+    getServicesResult []plugin_models.GetServices_Model
+    getServicesError  error
 
-    getAppError  error
     getAppResult plugin_models.GetAppModel
+    getAppError  error
+
+    getAppsResult []plugin_models.GetAppsModel
+    getAppsError  error
 }
 
 func (c *mockCliConnection) GetServices() ([]plugin_models.GetServices_Model, error) {
-    return c.services, c.getServicesError
+    return c.getServicesResult, c.getServicesError
 }
 
 func newMockCliConnection() *mockCliConnection {
@@ -57,18 +60,26 @@ func (c *mockCliConnection) GetApp(string) (plugin_models.GetAppModel, error) {
     return c.getAppResult, c.getAppError
 }
 
+func (c *mockCliConnection) GetApps() ([]plugin_models.GetAppsModel, error) {
+    return c.getAppsResult, c.getAppsError
+}
+
 type mockRegistrationFetcher struct {
-    registrations []registrations.Registration
+    registrations map[string][]registrations.Registration
     fetchError    error
 }
 
 func newMockRegistrationFetcher() *mockRegistrationFetcher {
     return &mockRegistrationFetcher{
-
+        registrations: map[string][]registrations.Registration{},
     }
 }
 
 func (f *mockRegistrationFetcher) Fetch(appGuid, registrationType string) ([]registrations.Registration, error) {
     Expect(appGuid).To(Equal("app-guid"))
+    return f.registrations["app-guid"], f.fetchError
+}
+
+func (f *mockRegistrationFetcher) FetchAll(registrationType string) (map[string][]registrations.Registration, error) {
     return f.registrations, f.fetchError
 }

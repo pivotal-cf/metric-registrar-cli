@@ -45,13 +45,13 @@ func NewFetcher(conn cliConn) *Fetcher {
     return &Fetcher{cliConn: conn}
 }
 
-func (f *Fetcher) Fetch(appGuid, registrationType string) ([]Registration, error) {
-    services, err := f.getServices(appGuid)
+func (f *Fetcher) FetchAll(registrationType string) (map[string][]Registration, error) {
+    registrations := map[string][]Registration{}
+    services, err := f.getServices()
     if err != nil {
         return nil, err
     }
 
-    var result []Registration
     for _, s := range services {
         r, isRegistration := registration(s.Entity)
         if isRegistration && r.Type == registrationType {
@@ -59,19 +59,27 @@ func (f *Fetcher) Fetch(appGuid, registrationType string) ([]Registration, error
             if err != nil {
                 return nil, err
             }
-            if !f.isBound(appGuid, bindings) {
-                continue
-            }
-
             r.NumberOfBindings = len(bindings)
-            result = append(result, r)
+
+            for _, binding := range bindings {
+                registrations[binding.Entity.AppGuid] = append(registrations[binding.Entity.AppGuid], r)
+            }
         }
     }
 
-    return result, nil
+    return registrations, nil
 }
 
-func (f *Fetcher) getServices(appGuid string) (services []servicesResponse, err error) {
+func (f *Fetcher) Fetch(appGuid, registrationType string) ([]Registration, error) {
+    registrations, err := f.FetchAll(registrationType)
+    if err != nil {
+        return nil, err
+    }
+
+    return registrations[appGuid], nil
+}
+
+func (f *Fetcher) getServices() (services []servicesResponse, err error) {
     space, err := f.cliConn.GetCurrentSpace()
     if err != nil {
         return services, err
