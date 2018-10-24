@@ -14,6 +14,7 @@ const (
     unregisterLogFormatCommand       = "unregister-log-format"
     unregisterMetricsEndpointCommand = "unregister-metrics-endpoint"
     listLogFormatsCommand            = "registered-log-formats"
+    listMetricsEndpointsCommand      = "registered-metrics-endpoints"
 )
 
 type Command struct {
@@ -87,7 +88,7 @@ var Registry = map[string]Command{
         },
     },
     registerMetricsEndpointCommand: {
-        name: registerMetricsEndpointCommand,
+        name:      registerMetricsEndpointCommand,
         HelpText:  "Register a metrics endpoint which will be scraped at the interval defined at deploy",
         Arguments: []string{"APP_NAME", "PATH"},
         Flags:     registerMetricsEndpointFlags,
@@ -100,7 +101,7 @@ var Registry = map[string]Command{
         },
     },
     unregisterLogFormatCommand: {
-        name: unregisterLogFormatCommand,
+        name:     unregisterLogFormatCommand,
         HelpText: "Unregister log formats",
         Options: map[string]Option{
             "f": {
@@ -119,7 +120,7 @@ var Registry = map[string]Command{
         },
     },
     unregisterMetricsEndpointCommand: {
-        name: unregisterMetricsEndpointCommand,
+        name:     unregisterMetricsEndpointCommand,
         HelpText: "Unregister metrics endpoints",
         Options: map[string]Option{
             "p": {
@@ -138,7 +139,7 @@ var Registry = map[string]Command{
         },
     },
     listLogFormatsCommand: {
-        name: listLogFormatsCommand,
+        name:     listLogFormatsCommand,
         HelpText: "List log formats in space",
         Options: map[string]Option{
             "-app": {
@@ -149,6 +150,20 @@ var Registry = map[string]Command{
         Flags: listFlags,
         Run: func(fetcher registrationFetcher, conn plugin.CliConnection) error {
             return ListRegisteredLogFormats(os.Stdout, fetcher, conn, listFlags.App)
+        },
+    },
+    listMetricsEndpointsCommand: {
+        name:     listMetricsEndpointsCommand,
+        HelpText: "List metrics endpoints in space",
+        Options: map[string]Option{
+            "-app": {
+                Name:        "APP",
+                Description: "list metrics endpoints for only the specified app",
+            },
+        },
+        Flags: listFlags,
+        Run: func(fetcher registrationFetcher, conn plugin.CliConnection) error {
+            return ListRegisteredMetricsEndpoints(os.Stdout, fetcher, conn, listFlags.App)
         },
     },
 }
