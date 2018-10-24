@@ -1,27 +1,14 @@
 package command
 
 import (
-    "errors"
     "strings"
 )
 
-func RegisterLogFormat(cliConn cliCommandRunner, args []string) error {
-    if len(args) != 2 {
-        return errors.New("usage: " + registerLogFormatUsage)
-    }
-    appName := args[0]
-    logFormat := args[1]
-
+func RegisterLogFormat(cliConn cliCommandRunner,  appName, logFormat string) error {
     return EnsureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
 }
 
-func RegisterMetricsEndpoint(cliConn cliCommandRunner, args []string) error {
-    if len(args) != 2 {
-        return errors.New("usage: " + registerMetricsEndpointUsage)
-    }
-    appName := args[0]
-    path := args[1]
-
+func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, path string) error {
     return EnsureServiceAndBind(cliConn, appName, metricsEndpoint, path)
 }
 

@@ -13,7 +13,7 @@ var _ = Describe("Register", func() {
 		It("creates a service", func() {
 			cliConnection := newMockCliConnection()
 
-			err := command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name"})
+			err := command.RegisterLogFormat(cliConnection, "app-name", "format-name")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
 				"create-user-provided-service",
@@ -22,19 +22,13 @@ var _ = Describe("Register", func() {
 				"structured-format://format-name",
 			)))
 		})
-
-		It("returns error if number of arguments is wrong", func() {
-			cliConnection := newMockCliConnection()
-
-			Expect(command.RegisterLogFormat(cliConnection, []string{"app-name", "format-name", "some-garbage"})).To(HaveOccurred())
-		})
 	})
 
 	Context("RegisterMetricsEndpoint", func() {
 		It("creates a service", func() {
 			cliConnection := newMockCliConnection()
 
-			err := command.RegisterMetricsEndpoint(cliConnection, []string{"app-name", "endpoint"})
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "endpoint")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
 				"create-user-provided-service",
@@ -42,12 +36,6 @@ var _ = Describe("Register", func() {
 				"-l",
 				"metrics-endpoint://endpoint",
 			)))
-		})
-
-		It("returns error if number of arguments is wrong", func() {
-			cliConnection := newMockCliConnection()
-
-			Expect(command.RegisterMetricsEndpoint(cliConnection, []string{"app-name", "endpoint", "some-garbage"})).To(HaveOccurred())
 		})
 	})
 

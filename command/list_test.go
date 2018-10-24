@@ -28,7 +28,8 @@ var _ = Describe("List", func() {
                     Type:             "structured-format",
                     Config:           "dogstatsd",
                     NumberOfBindings: 2,
-                }},
+                },
+            },
         }
         writer := newSpyWriter()
         cliConn := newMockCliConnection()

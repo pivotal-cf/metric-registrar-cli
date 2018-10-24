@@ -1,51 +1,18 @@
 package command
 
 import (
-    "errors"
-    "github.com/jessevdk/go-flags"
     "github.com/pivotal-cf/metric-registrar-cli/registrations"
 )
 
-func UnregisterLogFormat(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
-    type opts struct {
-        Format string `short:"f" long:"format"`
-    }
-
-    var options opts
-    argsNoFlags, err := flags.ParseArgs(&options, args)
-    if err != nil {
-        return err
-    }
-
-    if len(argsNoFlags) != 1 {
-        return errors.New("usage: " + unregisterLogFormatUsage)
-    }
-    appName := argsNoFlags[0]
-
-    return removeRegistrations(appName, structuredFormat, options.Format, cliConn, registrationFetcher)
-
+func UnregisterLogFormat(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, format string) error {
+    return removeRegistrations(registrationFetcher, cliConn, appName, structuredFormat, format)
 }
 
-func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn cliCommandRunner, args []string) error {
-    type opts struct {
-        Path string `short:"p" long:"path"`
-    }
-
-    var options opts
-    argsNoFlags, err := flags.ParseArgs(&options, args)
-    if err != nil {
-        return err
-    }
-
-    if len(argsNoFlags) != 1 {
-        return errors.New("usage: " + unregisterMetricsEndpointUsage)
-    }
-    appName := argsNoFlags[0]
-
-    return removeRegistrations(appName, metricsEndpoint, options.Path, cliConn, registrationFetcher)
+func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, path string) error {
+    return removeRegistrations(registrationFetcher, cliConn, appName, metricsEndpoint, path)
 }
 
-func removeRegistrations(appName, registrationType, config string, cliConn cliCommandRunner, registrationFetcher registrationFetcher) error {
+func removeRegistrations(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, registrationType, config string) error {
     app, err := cliConn.GetApp(appName)
     if err != nil {
         return err

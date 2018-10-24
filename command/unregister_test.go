@@ -29,7 +29,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})
+            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "")
             Expect(err).ToNot(HaveOccurred())
 
             Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
@@ -57,7 +57,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})
+            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "")
             Expect(err).ToNot(HaveOccurred())
 
             Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
@@ -91,11 +91,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            err := command.UnregisterLogFormat(
-                registrationFetcher,
-                cliConnection,
-                []string{"app-name", "-f", "json"},
-            )
+            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "json")
             Expect(err).ToNot(HaveOccurred())
 
             Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
@@ -112,17 +108,10 @@ var _ = Describe("Unregister", func() {
             registrationFetcher := newMockRegistrationFetcher()
             registrationFetcher.registrations["app-guid"] = nil
 
-            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})
+            err := command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "")
             Expect(err).ToNot(HaveOccurred())
 
             Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
-        })
-
-        It("returns error if no app name is provided", func() {
-            cliConnection := newMockCliConnection()
-            registrationFetcher := newMockRegistrationFetcher()
-
-            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, nil)).ToNot(Succeed())
         })
 
         It("returns error if getting app info fails", func() {
@@ -130,7 +119,7 @@ var _ = Describe("Unregister", func() {
             cliConnection.getAppError = errors.New("expected")
             registrationFetcher := newMockRegistrationFetcher()
 
-            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
 
         It("returns error if unbinding service fails", func() {
@@ -146,7 +135,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
 
         It("returns error if deleting service fails", func() {
@@ -162,7 +151,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
 
         It("returns an error if registration fetcher returns an error", func() {
@@ -170,7 +159,7 @@ var _ = Describe("Unregister", func() {
             registrationFetcher := newMockRegistrationFetcher()
             registrationFetcher.fetchError = errors.New("expected")
 
-            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
     })
 
@@ -193,7 +182,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})
+            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
             Expect(err).ToNot(HaveOccurred())
 
             Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
@@ -221,7 +210,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})
+            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
             Expect(err).ToNot(HaveOccurred())
 
             Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
@@ -258,7 +247,8 @@ var _ = Describe("Unregister", func() {
             err := command.UnregisterMetricsEndpoint(
                 registrationFetcher,
                 cliConnection,
-                []string{"app-name", "-p", ":9090/metrics"},
+                "app-name",
+                ":9090/metrics",
             )
             Expect(err).ToNot(HaveOccurred())
 
@@ -276,17 +266,10 @@ var _ = Describe("Unregister", func() {
             registrationFetcher := newMockRegistrationFetcher()
             registrationFetcher.registrations["app-guid"] = nil
 
-            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})
+            err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
             Expect(err).ToNot(HaveOccurred())
 
             Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
-        })
-
-        It("returns error if no app name is provided", func() {
-            cliConnection := newMockCliConnection()
-            registrationFetcher := newMockRegistrationFetcher()
-
-            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, nil)).ToNot(Succeed())
         })
 
         It("returns error if getting app info fails", func() {
@@ -294,7 +277,7 @@ var _ = Describe("Unregister", func() {
             cliConnection.getAppError = errors.New("expected")
             registrationFetcher := newMockRegistrationFetcher()
 
-            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
 
         It("returns error if unbinding service fails", func() {
@@ -310,7 +293,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
 
         It("returns error if deleting service fails", func() {
@@ -326,7 +309,7 @@ var _ = Describe("Unregister", func() {
                 },
             }
 
-            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
 
         It("returns an error if registration fetcher returns an error", func() {
@@ -334,7 +317,7 @@ var _ = Describe("Unregister", func() {
             registrationFetcher := newMockRegistrationFetcher()
             registrationFetcher.fetchError = errors.New("expected")
 
-            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, []string{"app-name"})).ToNot(Succeed())
+            Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
         })
     })
 })

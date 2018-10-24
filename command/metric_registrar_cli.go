@@ -3,6 +3,7 @@ package command
 import (
     "code.cloudfoundry.org/cli/plugin"
     "code.cloudfoundry.org/cli/plugin/models"
+    "github.com/jessevdk/go-flags"
     "github.com/pivotal-cf/metric-registrar-cli/registrations"
 
     "fmt"
@@ -10,19 +11,7 @@ import (
 )
 
 const (
-    pluginName                       = "metric-registrar"
-
-    registerLogFormatCommand         = "register-log-format"
-    registerMetricsEndpointCommand   = "register-metrics-endpoint"
-    unregisterLogFormatCommand       = "unregister-log-format"
-    unregisterMetricsEndpointCommand = "unregister-metrics-endpoint"
-    listLogFormatsCommand            = "registered-log-formats"
-
-    registerLogFormatUsage         = "cf register-log-format APPNAME <json|DogStatsD>"
-    registerMetricsEndpointUsage   = "cf register-metrics-endpoint APPNAME PATH"
-    unregisterLogFormatUsage       = "cf unregister-log-format APPNAME [-f FORMAT]"
-    unregisterMetricsEndpointUsage = "cf unregister-metrics-endpoint APPNAME [-p PATH]"
-    listLogFormatsUsage            = "cf registered-log-formats"
+    pluginName = "metric-registrar"
 
     structuredFormat = "structured-format"
     metricsEndpoint  = "metrics-endpoint"
@@ -47,28 +36,35 @@ type cliCommandRunner interface {
 }
 
 func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []string) {
-    switch args[0] {
-    case registerLogFormatCommand:
-        err := RegisterLogFormat(cliConnection, args[1:])
-        exitIfErr(err)
-    case registerMetricsEndpointCommand:
-        err := RegisterMetricsEndpoint(cliConnection, args[1:])
-        exitIfErr(err)
-    case unregisterLogFormatCommand:
-        registrationFetcher := registrations.NewFetcher(cliConnection)
-        err := UnregisterLogFormat(registrationFetcher, cliConnection, args[1:])
-        exitIfErr(err)
-    case unregisterMetricsEndpointCommand:
-        registrationFetcher := registrations.NewFetcher(cliConnection)
-        err := UnregisterMetricsEndpoint(registrationFetcher, cliConnection, args[1:])
-        exitIfErr(err)
-    case listLogFormatsCommand:
-        registrationFetcher := registrations.NewFetcher(cliConnection)
-        err := ListRegisteredLogFormats(os.Stdout, registrationFetcher, cliConnection)
-        exitIfErr(err)
-    case "CLI-MESSAGE-UNINSTALL":
-        // do nothing
+    commandName := args[0]
+    if commandName == "CLI-MESSAGE-UNINSTALL" {
+        return
     }
+
+    registrationFetcher := registrations.NewFetcher(cliConnection)
+    command, ok := Registry[commandName]
+    if !ok {
+        fmt.Println("unknown command")
+        os.Exit(1)
+    }
+
+    if command.Flags != nil {
+        parser := flags.NewParser(command.Flags, flags.HelpFlag)
+        remainingArgs, err := parser.ParseArgs(args[1:])
+        if err != nil {
+            fmt.Printf("incorrect usage: %s\n\n", err)
+            fmt.Println(command.Usage())
+            os.Exit(1)
+        }
+
+        if len(remainingArgs) != 0 {
+            fmt.Printf("incorrect usage: too many arguments\n\n")
+            fmt.Println(command.Usage())
+            os.Exit(1)
+        }
+    }
+
+    exitIfErr(command.Run(registrationFetcher, cliConnection))
 }
 
 func exitIfErr(err error) {
