@@ -39,6 +39,7 @@ func findExistingService(cliConn cliCommandRunner, serviceName string) (bool, er
     if err != nil {
         return false, err
     }
+
     for _, s := range existingServices {
         if s.Name == serviceName {
             return true, nil

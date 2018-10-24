@@ -13,12 +13,7 @@ func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn 
 }
 
 func removeRegistrations(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, registrationType, config string) error {
-    app, err := cliConn.GetApp(appName)
-    if err != nil {
-        return err
-    }
-
-    existingRegistrations, err := registrationFetcher.Fetch(app.Guid, registrationType)
+    existingRegistrations, err := existingRegistrations(registrationFetcher, cliConn, appName, registrationType)
     if err != nil {
         return err
     }
@@ -31,6 +26,19 @@ func removeRegistrations(registrationFetcher registrationFetcher, cliConn cliCom
     }
 
     return nil
+}
+
+func existingRegistrations(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName string, registrationType string) ([]registrations.Registration, error) {
+    app, err := cliConn.GetApp(appName)
+    if err != nil {
+        return nil, err
+    }
+    existingRegistrations, err := registrationFetcher.Fetch(app.Guid, registrationType)
+    if err != nil {
+        return nil, err
+    }
+
+    return existingRegistrations, nil
 }
 
 func removeRegistration(appName, config string, registration registrations.Registration, cliConn cliCommandRunner) error {

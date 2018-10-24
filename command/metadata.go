@@ -5,6 +5,18 @@ import (
 )
 
 func (c MetricRegistrarCli) GetMetadata() plugin.PluginMetadata {
+    return plugin.PluginMetadata{
+        Name: pluginName,
+        Version: plugin.VersionType{
+            Major: c.Major,
+            Minor: c.Minor,
+            Build: c.Patch,
+        },
+        Commands: buildCommands(),
+    }
+}
+
+func buildCommands() []plugin.Command {
     var commands []plugin.Command
     for name, c := range Registry {
         commands = append(commands, plugin.Command{
@@ -16,16 +28,7 @@ func (c MetricRegistrarCli) GetMetadata() plugin.PluginMetadata {
             },
         })
     }
-
-    return plugin.PluginMetadata{
-        Name: pluginName,
-        Version: plugin.VersionType{
-            Major: c.Major,
-            Minor: c.Minor,
-            Build: c.Patch,
-        },
-        Commands: commands,
-    }
+    return commands
 }
 
 func buildOptions(c Command) map[string]string {
