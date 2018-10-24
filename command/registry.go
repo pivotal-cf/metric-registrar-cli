@@ -30,7 +30,7 @@ type Command struct {
 func (c Command) Usage() string {
     argsAndOptions := append([]string{}, c.Arguments...)
     for flag, opt := range c.Options {
-        argsAndOptions = append(argsAndOptions, fmt.Sprintf("[%s %s]", flag, opt.Name))
+        argsAndOptions = append(argsAndOptions, fmt.Sprintf("[-%s %s]", flag, opt.Name))
     }
 
     return fmt.Sprintf("cf %s %s",
@@ -50,19 +50,26 @@ var registerLogFormatFlags = &struct {
         Format  string `positional-arg-name:"FORMAT"`
     } `positional-args:"APP_NAME FORMAT" required:"2"`
 }{}
+
 var registerMetricsEndpointFlags = &struct {
     Args struct {
         AppName string `positional-arg-name:"APP_NAME"`
         Path    string `positional-arg-name:"PATH"`
     } `positional-args:"APP_NAME PATH" required:"2"`
 }{}
+
 var unregisterMetricsEndpointFlags = &struct {
     Path string                                                    `short:"p" long:"path"`
     Args struct{ AppName string `positional-arg-name:"APP_NAME"` } `positional-args:"APP_NAME" required:"1"`
 }{}
+
 var unregisterLogFormatFlags = &struct {
     Format string                                                    `short:"f" long:"format"`
     Args   struct{ AppName string `positional-arg-name:"APP_NAME"` } `positional-args:"APP_NAME" required:"1"`
+}{}
+
+var listFlags = &struct {
+    App string `short:"a" long:"app"`
 }{}
 
 var Registry = map[string]Command{
@@ -80,6 +87,7 @@ var Registry = map[string]Command{
         },
     },
     registerMetricsEndpointCommand: {
+        name: registerMetricsEndpointCommand,
         HelpText:  "Register a metrics endpoint which will be scraped at the interval defined at deploy",
         Arguments: []string{"APP_NAME", "PATH"},
         Flags:     registerMetricsEndpointFlags,
@@ -92,9 +100,10 @@ var Registry = map[string]Command{
         },
     },
     unregisterLogFormatCommand: {
+        name: unregisterLogFormatCommand,
         HelpText: "Unregister log formats",
         Options: map[string]Option{
-            "-f": {
+            "f": {
                 Name:        "FORMAT",
                 Description: "unregister only the specified log format",
             },
@@ -110,9 +119,10 @@ var Registry = map[string]Command{
         },
     },
     unregisterMetricsEndpointCommand: {
+        name: unregisterMetricsEndpointCommand,
         HelpText: "Unregister metrics endpoints",
         Options: map[string]Option{
-            "-p": {
+            "p": {
                 Name:        "PATH",
                 Description: "unregister only the specified path",
             },
@@ -128,12 +138,17 @@ var Registry = map[string]Command{
         },
     },
     listLogFormatsCommand: {
+        name: listLogFormatsCommand,
         HelpText: "List log formats in space",
-        Run: func(fetcher registrationFetcher, conn plugin.CliConnection) error {
-            return ListRegisteredLogFormats(os.Stdout, fetcher, conn)
+        Options: map[string]Option{
+            "-app": {
+                Name:        "APP",
+                Description: "list log formats for only the specified app",
+            },
         },
-        Flags: &struct {
-
-        }{},
+        Flags: listFlags,
+        Run: func(fetcher registrationFetcher, conn plugin.CliConnection) error {
+            return ListRegisteredLogFormats(os.Stdout, fetcher, conn, listFlags.App)
+        },
     },
 }

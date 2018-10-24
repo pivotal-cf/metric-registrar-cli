@@ -17,27 +17,51 @@ var _ = Describe("List", func() {
         registrationFetcher := newMockRegistrationFetcher()
         registrationFetcher.registrations = map[string][]registrations.Registration{
             "app-guid": {
-                {
-                    Name:             "service1",
-                    Type:             "structured-format",
-                    Config:           "json",
-                    NumberOfBindings: 2,
-                },
-                {
-                    Name:             "service2",
-                    Type:             "structured-format",
-                    Config:           "dogstatsd",
-                    NumberOfBindings: 2,
-                },
+                {Type: "structured-format", Config: "json"},
+                {Type: "structured-format", Config: "dogstatsd"},
+            },
+            "app-guid-2": {
+                {Type: "structured-format", Config: "dogstatsd"},
             },
         }
         writer := newSpyWriter()
         cliConn := newMockCliConnection()
         cliConn.getAppsResult = []plugin_models.GetAppsModel{
             {Name: "app-name", Guid: "app-guid"},
+            {Name: "app-name-2", Guid: "app-guid-2"},
         }
 
-        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn)
+        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn, "")
+        Expect(err).ToNot(HaveOccurred())
+
+        Expect(writer.lines()).To(Equal([]string{
+            "App         Format",
+            "app-name    json",
+            "app-name    dogstatsd",
+            "app-name-2  dogstatsd",
+            "",
+        }))
+    })
+
+    It("only displays registered log formats for the specified apps", func() {
+        registrationFetcher := newMockRegistrationFetcher()
+        registrationFetcher.registrations = map[string][]registrations.Registration{
+            "app-guid": {
+                {Type: "structured-format", Config: "json"},
+                {Type: "structured-format", Config: "dogstatsd"},
+            },
+            "app-guid-2": {
+                {Type: "structured-format", Config: "dogstatsd"},
+            },
+        }
+        writer := newSpyWriter()
+        cliConn := newMockCliConnection()
+        cliConn.getAppsResult = []plugin_models.GetAppsModel{
+            {Name: "app-name", Guid: "app-guid"},
+            {Name: "app-name-2", Guid: "app-guid-2"},
+        }
+
+        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn, "app-name")
         Expect(err).ToNot(HaveOccurred())
 
         Expect(writer.lines()).To(Equal([]string{
@@ -58,7 +82,7 @@ var _ = Describe("List", func() {
             {Name: "app-name", Guid: "app-guid"},
         }
 
-        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn)
+        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn, "")
         Expect(err).To(HaveOccurred())
     })
 
@@ -79,7 +103,7 @@ var _ = Describe("List", func() {
             {Name: "app-name", Guid: "app-guid"},
         }
 
-        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn)
+        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn, "")
         Expect(err).To(HaveOccurred())
     })
 
@@ -97,7 +121,7 @@ var _ = Describe("List", func() {
         cliConn := newMockCliConnection()
         cliConn.getAppsError = errors.New("expected")
 
-        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn)
+        err := command.ListRegisteredLogFormats(writer, registrationFetcher, cliConn, "")
         Expect(err).To(HaveOccurred())
     })
 })
