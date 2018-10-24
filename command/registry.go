@@ -132,5 +132,8 @@ var Registry = map[string]Command{
         Run: func(fetcher registrationFetcher, conn plugin.CliConnection) error {
             return ListRegisteredLogFormats(os.Stdout, fetcher, conn)
         },
+        Flags: &struct {
+
+        }{},
     },
 }

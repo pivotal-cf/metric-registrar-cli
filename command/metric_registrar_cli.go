@@ -36,35 +36,44 @@ type cliCommandRunner interface {
 }
 
 func (c MetricRegistrarCli) Run(cliConnection plugin.CliConnection, args []string) {
+    command := command(args)
+    parseArgs(command, args)
+
+    exitIfErr(command.Run(registrations.NewFetcher(cliConnection), cliConnection))
+}
+
+func command(args []string) Command {
     commandName := args[0]
     if commandName == "CLI-MESSAGE-UNINSTALL" {
-        return
+        os.Exit(0)
     }
 
-    registrationFetcher := registrations.NewFetcher(cliConnection)
     command, ok := Registry[commandName]
     if !ok {
         fmt.Println("unknown command")
         os.Exit(1)
     }
 
-    if command.Flags != nil {
-        parser := flags.NewParser(command.Flags, flags.HelpFlag)
-        remainingArgs, err := parser.ParseArgs(args[1:])
-        if err != nil {
-            fmt.Printf("incorrect usage: %s\n\n", err)
-            fmt.Println(command.Usage())
-            os.Exit(1)
-        }
+    return command
+}
 
-        if len(remainingArgs) != 0 {
-            fmt.Printf("incorrect usage: too many arguments\n\n")
-            fmt.Println(command.Usage())
-            os.Exit(1)
-        }
+func parseArgs(command Command, args []string) {
+    parser := flags.NewParser(command.Flags, flags.HelpFlag)
+
+    remainingArgs, err := parser.ParseArgs(args[1:])
+    if err != nil {
+        exitUsage(err.Error(), command.Usage())
     }
 
-    exitIfErr(command.Run(registrationFetcher, cliConnection))
+    if len(remainingArgs) != 0 {
+        exitUsage("too many arguments", command.Usage())
+    }
+}
+
+func exitUsage(message, usage string) {
+    fmt.Printf("incorrect usage: %s\n\n", message)
+    fmt.Println(usage)
+    os.Exit(1)
 }
 
 func exitIfErr(err error) {
