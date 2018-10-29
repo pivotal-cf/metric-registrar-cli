@@ -33,12 +33,8 @@ func existingRegistrations(registrationFetcher registrationFetcher, cliConn cliC
     if err != nil {
         return nil, err
     }
-    existingRegistrations, err := registrationFetcher.Fetch(app.Guid, registrationType)
-    if err != nil {
-        return nil, err
-    }
 
-    return existingRegistrations, nil
+    return registrationFetcher.Fetch(app.Guid, registrationType)
 }
 
 func removeRegistration(appName, config string, registration registrations.Registration, cliConn cliCommandRunner) error {
