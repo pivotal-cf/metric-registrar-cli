@@ -1,10 +1,11 @@
 package registrations
 
 import (
-    "code.cloudfoundry.org/cli/plugin/models"
     "encoding/json"
     "fmt"
     "strings"
+
+    "code.cloudfoundry.org/cli/plugin/models"
 )
 
 type cliConn interface {

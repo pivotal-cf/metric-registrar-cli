@@ -1,11 +1,13 @@
 package command_test
 
 import (
-    "code.cloudfoundry.org/cli/plugin/models"
     "errors"
+
+    "github.com/pivotal-cf/metric-registrar-cli/command"
+
+    "code.cloudfoundry.org/cli/plugin/models"
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
-    "github.com/pivotal-cf/metric-registrar-cli/command"
 )
 
 var _ = Describe("Register", func() {

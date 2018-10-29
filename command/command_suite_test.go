@@ -1,11 +1,12 @@
 package command_test
 
 import (
-    "code.cloudfoundry.org/cli/plugin/models"
     "errors"
-    "github.com/pivotal-cf/metric-registrar-cli/registrations"
     "testing"
 
+    "github.com/pivotal-cf/metric-registrar-cli/registrations"
+
+    "code.cloudfoundry.org/cli/plugin/models"
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
 )

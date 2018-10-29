@@ -1,9 +1,11 @@
 package main
 
 import (
-    "code.cloudfoundry.org/cli/plugin"
-    "github.com/pivotal-cf/metric-registrar-cli/command"
     "strconv"
+
+    "github.com/pivotal-cf/metric-registrar-cli/command"
+
+    "code.cloudfoundry.org/cli/plugin"
 )
 
 var Major string

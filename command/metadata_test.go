@@ -1,11 +1,12 @@
 package command_test
 
 import (
+	"github.com/pivotal-cf/metric-registrar-cli/command"
+
 	"code.cloudfoundry.org/cli/plugin"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
-	"github.com/pivotal-cf/metric-registrar-cli/command"
 )
 
 var _ = Describe("Metadata", func() {

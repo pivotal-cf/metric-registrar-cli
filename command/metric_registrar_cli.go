@@ -1,13 +1,14 @@
 package command
 
 import (
+    "fmt"
+    "os"
+
+    "github.com/pivotal-cf/metric-registrar-cli/registrations"
+
     "code.cloudfoundry.org/cli/plugin"
     "code.cloudfoundry.org/cli/plugin/models"
     "github.com/jessevdk/go-flags"
-    "github.com/pivotal-cf/metric-registrar-cli/registrations"
-
-    "fmt"
-    "os"
 )
 
 const (

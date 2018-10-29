@@ -1,13 +1,15 @@
 package registrations_test
 
 import (
-    "code.cloudfoundry.org/cli/plugin/models"
     "errors"
+    "strings"
+
+    "github.com/pivotal-cf/metric-registrar-cli/registrations"
+
+    "code.cloudfoundry.org/cli/plugin/models"
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/ginkgo/extensions/table"
     . "github.com/onsi/gomega"
-    "github.com/pivotal-cf/metric-registrar-cli/registrations"
-    "strings"
 )
 
 var _ = Describe("Fetcher", func() {

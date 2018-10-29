@@ -2,6 +2,7 @@ package command_test
 
 import (
     "errors"
+
     "github.com/pivotal-cf/metric-registrar-cli/command"
     "github.com/pivotal-cf/metric-registrar-cli/registrations"
 

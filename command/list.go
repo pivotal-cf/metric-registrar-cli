@@ -6,8 +6,9 @@ import (
     "strings"
     "text/tabwriter"
 
-    "code.cloudfoundry.org/cli/plugin/models"
     "github.com/pivotal-cf/metric-registrar-cli/registrations"
+
+    "code.cloudfoundry.org/cli/plugin/models"
 )
 
 type appLister interface {
