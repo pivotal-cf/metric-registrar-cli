@@ -5,15 +5,14 @@ import (
 )
 
 func RegisterLogFormat(cliConn cliCommandRunner,  appName, logFormat string) error {
-    return EnsureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
+    return ensureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
 }
 
 func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, path string) error {
-    return EnsureServiceAndBind(cliConn, appName, metricsEndpoint, path)
+    return ensureServiceAndBind(cliConn, appName, metricsEndpoint, path)
 }
 
-//TODO shouldn't be exported
-func EnsureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, config string) error {
+func ensureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, config string) error {
     cleanedConfig := strings.Trim(strings.Replace(config, "/", "-", -1), "-")
     serviceName := serviceProtocol + "-" + cleanedConfig
     exists, err := findExistingService(cliConn, serviceName)
