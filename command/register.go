@@ -1,20 +1,72 @@
 package command
 
 import (
+    "crypto/sha1"
+    "encoding/base64"
+    "fmt"
+    "net/url"
     "strings"
+
+    pluginmodels "code.cloudfoundry.org/cli/plugin/models"
 )
 
-func RegisterLogFormat(cliConn cliCommandRunner,  appName, logFormat string) error {
+func RegisterLogFormat(cliConn cliCommandRunner, appName, logFormat string) error {
     return ensureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
 }
 
-func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, path string) error {
-    return ensureServiceAndBind(cliConn, appName, metricsEndpoint, path)
+func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route string) error {
+    if route[0] != '/' {
+        app, err := cliConn.GetApp(appName)
+        if err != nil {
+            return err
+        }
+
+        err = validateRouteForApp(route, app)
+        if err != nil {
+            return err
+        }
+
+    }
+    return ensureServiceAndBind(cliConn, appName, metricsEndpoint, route)
+}
+
+func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) error {
+    requested, err := url.Parse(ensureHttpsPrefix(requestedRoute))
+    if err != nil {
+        return fmt.Errorf("unable to parse requested route: %s", err)
+    }
+    for _, r := range app.Routes {
+        var host string
+        host = formatHost(r)
+        route := &url.URL{
+            Host: host,
+            Path: "/" + r.Path,
+        }
+
+        if requested.Host == route.Host && strings.HasPrefix(requested.Path, route.Path) {
+            return nil
+        }
+    }
+    return fmt.Errorf("route '%s' is not bound to app '%s'", requestedRoute, app.Name)
+}
+
+func formatHost(r pluginmodels.GetApp_RouteSummary) string {
+    host := r.Domain.Name
+    if r.Host != "" {
+        host = fmt.Sprintf("%s.%s", r.Host, host)
+    }
+    if r.Port != 0 {
+        host = fmt.Sprintf("%s:%d", host, r.Port)
+    }
+    return host
+}
+
+func ensureHttpsPrefix(requestedRoute string) string {
+    return "https://" + strings.Replace(requestedRoute, "https://", "", 1)
 }
 
 func ensureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, config string) error {
-    cleanedConfig := strings.Trim(strings.Replace(config, "/", "-", -1), "-")
-    serviceName := serviceProtocol + "-" + cleanedConfig
+    serviceName := generateServiceName(serviceProtocol, config)
     exists, err := findExistingService(cliConn, serviceName)
     if err != nil {
         return err
@@ -22,7 +74,7 @@ func ensureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, co
 
     if !exists {
         binding := serviceProtocol + "://" + config
-        _, err := cliConn.CliCommandWithoutTerminalOutput("create-user-provided-service", serviceName, "-l", binding)
+        _, err = cliConn.CliCommandWithoutTerminalOutput("create-user-provided-service", serviceName, "-l", binding)
         if err != nil {
             return err
         }
@@ -31,6 +83,19 @@ func ensureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, co
     _, err = cliConn.CliCommandWithoutTerminalOutput("bind-service", appName, serviceName)
 
     return err
+}
+
+func generateServiceName(serviceProtocol string, config string) string {
+    cleanedConfig := strings.Trim(strings.Replace(config, "/", "-", -1), "-")
+    serviceName := serviceProtocol + "-" + cleanedConfig
+    // Cloud Controller limits service name lengths:
+    // see https://github.com/cloudfoundry/cloud_controller_ng/blob/master/vendor/errors/v2.yml#L231
+    if len(serviceName) > 50 {
+        hasher := sha1.New()
+        hasher.Write([]byte(cleanedConfig))
+        serviceName = serviceProtocol + "-" + strings.Trim(base64.URLEncoding.EncodeToString(hasher.Sum(nil)), "=")
+    }
+    return serviceName
 }
 
 func findExistingService(cliConn cliCommandRunner, serviceName string) (bool, error) {

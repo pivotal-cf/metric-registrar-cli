@@ -39,6 +39,14 @@ func newMockCliConnection() *mockCliConnection {
         cliCommandsCalled: make(chan []string, 10),
         getAppResult: plugin_models.GetAppModel{
             Guid: "app-guid",
+            Name: "app-name",
+            Routes: []plugin_models.GetApp_RouteSummary{{
+                Host: "app-host",
+                Domain: plugin_models.GetApp_DomainFields{
+                    Name: "app-domain",
+                },
+                Path: "app-path",
+            }},
         },
     }
 }
