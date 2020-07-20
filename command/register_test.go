@@ -2,6 +2,7 @@ package command_test
 
 import (
 	"errors"
+	"fmt"
 
 	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	"github.com/pivotal-cf/metric-registrar-cli/command"
@@ -104,7 +105,6 @@ var _ = Describe("Register", func() {
 		It("checks the route", func() {
 			cliConnection := newMockCliConnection()
 			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "not-app-host.app-domain/app-path/metrics", "")
-
 			Expect(err).To(MatchError("route 'not-app-host.app-domain/app-path/metrics' is not bound to app 'app-name'"))
 		})
 
@@ -127,8 +127,11 @@ var _ = Describe("Register", func() {
 
 			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cliConnection.cliCommandsCalled).To(receiveBindService())
-			Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
+
+			var command []string
+			Expect(cliConnection.cliCommandsCalled).To(Receive(&command))
+			Expect(command).ToNot(matchCreateUserProvidedService())
+			Expect(command).To(matchBindService())
 		})
 
 		It("replaces slashes in the service name", func() {
@@ -166,7 +169,8 @@ var _ = Describe("Register", func() {
 
 			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "1234")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService(
+
+			Eventually(cliConnection.cliCommandsCalled).Should(receiveCreateUserProvidedService(
 				"secure-endpoint-1234-metrics",
 				"-l",
 				"secure-endpoint://:1234/metrics",
@@ -176,6 +180,13 @@ var _ = Describe("Register", func() {
 				"app-name",
 				"secure-endpoint-1234-metrics",
 			))
+		})
+
+		It("exposes the internal port for a secure endpoint automatically", func() {
+			cliConnection := newMockCliConnection()
+
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/v2/metrics", "2112")).To(Succeed())
+			expectToReceiveCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", "2112")
 		})
 
 		It("returns error if getting the app fails", func() {
@@ -234,17 +245,38 @@ func expectToReceiveCupsArgs(called chan []string) (string, string) {
 	return args[1], args[3]
 }
 
-func receiveCreateUserProvidedService(args ...string) types.GomegaMatcher {
+func matchCreateUserProvidedService(args ...string) types.GomegaMatcher {
 	if len(args) == 0 {
-		return Receive(ContainElement("create-user-provided-service"))
+		return ContainElement("create-user-provided-service")
 	}
 
-	return Receive(Equal(append([]string{"create-user-provided-service"}, args...)))
+	return Equal(append([]string{"create-user-provided-service"}, args...))
+}
+
+func receiveCreateUserProvidedService(args ...string) types.GomegaMatcher {
+	return Receive(matchCreateUserProvidedService(args...))
+}
+
+func expectToReceiveCurlForAppAndPort(called chan []string, appGuid string, port string) {
+	var args []string
+	Expect(called).To(Receive(&args))
+	Expect(args[0]).To(Equal("curl"))
+	Expect(args[1]).To(Equal(fmt.Sprintf("/v2/apps/%s", appGuid)))
+	Expect(args[2]).To(Equal("-X"))
+	Expect(args[3]).To(Equal("PUT"))
+	Expect(args[4]).To(Equal("-d"))
+	// TODO: what if the app already has ports exposed? how do we find that
+	//       out?
+	Expect(args[5]).To(Equal(fmt.Sprintf("'{\"ports\": [%s]}'", port)))
+}
+
+func matchBindService(args ...string) types.GomegaMatcher {
+	if len(args) == 0 {
+		return ContainElement("bind-service")
+	}
+	return Equal(append([]string{"bind-service"}, args...))
 }
 
 func receiveBindService(args ...string) types.GomegaMatcher {
-	if len(args) == 0 {
-		return Receive(ContainElement("bind-service"))
-	}
-	return Receive(Equal(append([]string{"bind-service"}, args...)))
+	return Receive(matchBindService(args...))
 }

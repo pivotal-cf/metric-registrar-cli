@@ -15,24 +15,39 @@ func RegisterLogFormat(cliConn cliCommandRunner, appName, logFormat string) erro
 }
 
 func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalPort string) error {
-	serviceProtocol := metricsEndpoint
-	if route[0] != '/' {
-		app, err := cliConn.GetApp(appName)
-		if err != nil {
-			return err
-		}
+	app, err := cliConn.GetApp(appName)
+	if err != nil {
+		return err
+	}
 
+	// if they provide a full URL rather than a relative path, we need to
+	// verify that the route is actually associated with the app
+	// (we don't want people trying to scrape https://cia.gov/metrics)
+	if route[0] != '/' {
 		err = validateRouteForApp(route, app)
 		if err != nil {
 			return err
 		}
-
 	}
+
+	serviceProtocol := metricsEndpoint
 	if internalPort != "" {
 		route = ":" + internalPort + route
 		serviceProtocol = secureEndpoint
+		err = exposePortForApp(cliConn, app.Guid, internalPort)
+		if err != nil {
+			return err
+		}
 	}
+
 	return ensureServiceAndBind(cliConn, appName, serviceProtocol, route)
+}
+
+func exposePortForApp(cliConn cliCommandRunner, guid string, port string) error {
+	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
+	portsBody := fmt.Sprintf("'{\"ports\": [%s]}'", port)
+	_, err := cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint, "-X", "PUT", "-d", portsBody)
+	return err
 }
 
 func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) error {

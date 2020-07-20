@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	"github.com/pivotal-cf/metric-registrar-cli/registrations"
 
-	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -52,10 +52,6 @@ func newMockCliConnection() *mockCliConnection {
 }
 
 func (c *mockCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
-	if args[0] == "curl" {
-		return []string{}, nil
-	}
-
 	c.cliCommandsCalled <- args
 	if args[0] == c.cliErrorCommand {
 		return nil, errors.New("error")
