@@ -2,10 +2,13 @@ package command_test
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/pivotal-cf/metric-registrar-cli/command"
 	"github.com/pivotal-cf/metric-registrar-cli/registrations"
 
+	. "github.com/benjamintf1/unmarshalledmatchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -199,6 +202,24 @@ var _ = Describe("Unregister", func() {
 			)))
 		})
 
+		It("removes exposed ports", func() {
+			cliConnection := newMockCliConnection()
+			cliConnection.exposedPorts = []int{1234, 2112}
+
+			registrationFetcher := newMockRegistrationFetcher()
+			registrationFetcher.registrations["app-guid"] = []registrations.Registration{
+				{
+					Name:             "service1",
+					Type:             "metrics-endpoint",
+					Config:           ":2112/metrics",
+					NumberOfBindings: 1,
+				},
+			}
+			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
+			Expect(err).ToNot(HaveOccurred())
+			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []string{"1234"})
+		})
+
 		It("deletes service if no more apps bound", func() {
 			cliConnection := newMockCliConnection()
 			registrationFetcher := newMockRegistrationFetcher()
@@ -229,6 +250,7 @@ var _ = Describe("Unregister", func() {
 
 		It("only unbinds specified service if path is set", func() {
 			cliConnection := newMockCliConnection()
+			cliConnection.exposedPorts = []int{8080, 9090}
 			registrationFetcher := newMockRegistrationFetcher()
 			registrationFetcher.registrations["app-guid"] = []registrations.Registration{
 				{
@@ -253,13 +275,19 @@ var _ = Describe("Unregister", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+			Expect(cliConnection.cliCommandsCalled).Should(Receive(ConsistOf(
 				"unbind-service",
 				"app-name",
 				"service1",
 			)))
 
-			Expect(cliConnection.cliCommandsCalled).To(BeEmpty())
+			Expect(cliConnection.cliCommandsCalled).ShouldNot(Receive(ConsistOf(
+				"unbind-service",
+				"app-name",
+				"service2",
+			)))
+
+			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []string{"8080", "9090"})
 		})
 
 		It("doesn't unbind services if registration fetcher doesn't find any", func() {
@@ -270,7 +298,7 @@ var _ = Describe("Unregister", func() {
 			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
+			Expect(cliConnection.cliCommandsCalled).ShouldNot(Receive(ContainElement("unbind-service")))
 		})
 
 		It("returns error if getting app info fails", func() {
@@ -320,5 +348,32 @@ var _ = Describe("Unregister", func() {
 
 			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
 		})
+
+		It("returns an error if unregistering the port returns an error", func() {
+			cliConnection := newMockCliConnection()
+			registrationFetcher := newMockRegistrationFetcher()
+			cliConnection.getAppsInfoError = errors.New("cf doesn't want to speak to you rn")
+
+			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "2112")).ToNot(Succeed())
+		})
 	})
 })
+
+func expectToReceivePutCurlForAppAndPort(called chan []string, appGuid string, ports []string) {
+	Eventually(called).Should(Receive(And(
+		matchCurl(
+			fmt.Sprintf("/v2/apps/%s", appGuid),
+			"-X",
+			"PUT",
+			"-d",
+		), ContainElement(
+			WithTransform(removeSingleQuotes, MatchUnorderedJSON(
+				fmt.Sprintf("{\"ports\":[%s]}", strings.Join(ports, ",")),
+			)),
+		),
+	)))
+}
+
+func removeSingleQuotes(s string) interface{} {
+	return strings.ReplaceAll(s, "'", "")
+}

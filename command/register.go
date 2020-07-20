@@ -5,7 +5,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
+
+	"github.com/pivotal-cf/metric-registrar-cli/ports"
 
 	pluginmodels "code.cloudfoundry.org/cli/plugin/models"
 )
@@ -15,23 +18,35 @@ func RegisterLogFormat(cliConn cliCommandRunner, appName, logFormat string) erro
 }
 
 func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalPort string) error {
-	serviceProtocol := metricsEndpoint
-	if route[0] != '/' {
-		app, err := cliConn.GetApp(appName)
-		if err != nil {
-			return err
-		}
+	app, err := cliConn.GetApp(appName)
+	if err != nil {
+		return err
+	}
 
+	// if they provide a full URL rather than a relative path, we need to
+	// verify that the route is actually associated with the app
+	// (we don't want people trying to scrape https://cia.gov/metrics)
+	if route[0] != '/' {
 		err = validateRouteForApp(route, app)
 		if err != nil {
 			return err
 		}
-
 	}
+
+	serviceProtocol := metricsEndpoint
 	if internalPort != "" {
 		route = ":" + internalPort + route
 		serviceProtocol = secureEndpoint
+		port, err := strconv.Atoi(internalPort)
+		if err != nil {
+			return err
+		}
+		err = exposePortForApp(cliConn, app.Guid, port)
+		if err != nil {
+			return err
+		}
 	}
+
 	return ensureServiceAndBind(cliConn, appName, serviceProtocol, route)
 }
 
@@ -53,6 +68,23 @@ func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) er
 		}
 	}
 	return fmt.Errorf("route '%s' is not bound to app '%s'", requestedRoute, app.Name)
+}
+
+func exposePortForApp(cliConn cliCommandRunner, guid string, port int) error {
+	existingPorts, err := ports.GetPortsForApp(cliConn, guid)
+	if err != nil {
+		return err
+	}
+
+	// don't need to make a PUT request if it's already exposed
+	for _, p := range existingPorts {
+		if p == port {
+			return nil
+		}
+	}
+
+	newPorts := append(existingPorts, port)
+	return ports.SetPortsForApp(cliConn, guid, newPorts)
 }
 
 func formatHost(r pluginmodels.GetApp_RouteSummary) string {
