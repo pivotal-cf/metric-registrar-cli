@@ -61,6 +61,8 @@ func removeRegistration(appName, config string, registration registrations.Regis
 		return nil
 	}
 
+	// TODO: if registration.Type == secureEndpoint
+
 	_, err := cliConn.CliCommandWithoutTerminalOutput("unbind-service", appName, registration.Name)
 	if err != nil {
 		return err

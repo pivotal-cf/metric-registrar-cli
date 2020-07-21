@@ -199,6 +199,10 @@ var _ = Describe("Unregister", func() {
 			)))
 		})
 
+		It("removes exposed ports", func() {
+			Fail("not implemented")
+		})
+
 		It("deletes service if no more apps bound", func() {
 			cliConnection := newMockCliConnection()
 			registrationFetcher := newMockRegistrationFetcher()
@@ -319,6 +323,10 @@ var _ = Describe("Unregister", func() {
 			registrationFetcher.fetchError = errors.New("expected")
 
 			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
+		})
+
+		It("returns an error if unregistering the port returns an error", func() {
+			Fail("not implemented")
 		})
 	})
 })

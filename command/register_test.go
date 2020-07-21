@@ -233,6 +233,11 @@ var _ = Describe("Register", func() {
 			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService())
 			Expect(cliConnection.cliCommandsCalled).To(receiveBindService())
 		})
+
+		It("returns error if exposing port fails", func() {
+			// cf curl put ..... fails
+			Fail("not implemented")
+		})
 	})
 })
 
