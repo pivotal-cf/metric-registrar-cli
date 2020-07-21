@@ -3,8 +3,10 @@ package command
 import (
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	pluginmodels "code.cloudfoundry.org/cli/plugin/models"
@@ -34,7 +36,12 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalP
 	if internalPort != "" {
 		route = ":" + internalPort + route
 		serviceProtocol = secureEndpoint
-		err = exposePortForApp(cliConn, app.Guid, internalPort)
+		port, err := strconv.Atoi(internalPort)
+		fmt.Printf("====port===: %d\n", port)
+		if err != nil {
+			return err
+		}
+		err = exposePortForApp(cliConn, app.Guid, port)
 		if err != nil {
 			return err
 		}
@@ -43,11 +50,50 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalP
 	return ensureServiceAndBind(cliConn, appName, serviceProtocol, route)
 }
 
-func exposePortForApp(cliConn cliCommandRunner, guid string, port string) error {
+type response struct {
+	entity entity `json: "entity"`
+}
+type entity struct {
+	ports []int `json:"ports"`
+}
+
+func getPortsForApp(cliConn cliCommandRunner, guid string) ([]int, error) {
 	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
-	portsBody := fmt.Sprintf("'{\"ports\": [%s]}'", port)
-	_, err := cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint, "-X", "PUT", "-d", portsBody)
+	output, err := cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint)
+	joined := strings.Join(output, "")
+
+	response := response{}
+	err = json.Unmarshal([]byte(joined), &response)
+	return response.entity.ports, err
+}
+
+func setPortsForApp(cliConn cliCommandRunner, guid string, ports []int) error {
+	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
+	newPortsEntity := entity{ports: ports}
+
+	// TODO: how to marshal!?!?! this is returning not what we expect
+	marshaledBody, err := json.Marshal(newPortsEntity)
+	fmt.Println("======================", marshaledBody)
+	stringPorts := strings.Replace(fmt.Sprint(ports), " ", ",", -1)
+	fmtBody := fmt.Sprintf("{\"ports\":%s}", stringPorts)
+	fmt.Println(fmtBody)
+	if err != nil {
+		return err
+	}
+
+	_, err = cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint, "-X", "PUT", "-d", string(fmtBody))
 	return err
+}
+
+func exposePortForApp(cliConn cliCommandRunner, guid string, port int) error {
+	existingPorts, err := getPortsForApp(cliConn, guid)
+	if err != nil {
+		return err
+	}
+	// TODO: what if port is already in existingPorts?
+	newPorts := append(existingPorts, port)
+	fmt.Println(newPorts)
+	return setPortsForApp(cliConn, guid, newPorts)
 }
 
 func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) error {
