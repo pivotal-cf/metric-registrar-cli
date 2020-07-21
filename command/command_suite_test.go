@@ -84,7 +84,15 @@ func newMockRegistrationFetcher() *mockRegistrationFetcher {
 
 func (f *mockRegistrationFetcher) Fetch(appGuid, registrationType string) ([]registrations.Registration, error) {
 	Expect(appGuid).To(Equal("app-guid"))
-	return f.registrations["app-guid"], f.fetchError
+
+	reg := make([]registrations.Registration, 0)
+	for _, r := range f.registrations["app-guid"] {
+		if r.Type == registrationType {
+			reg = append(reg, r)
+		}
+	}
+
+	return reg, f.fetchError
 }
 
 func (f *mockRegistrationFetcher) FetchAll(registrationType string) (map[string][]registrations.Registration, error) {

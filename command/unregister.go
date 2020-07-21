@@ -34,7 +34,26 @@ func existingRegistrations(registrationFetcher registrationFetcher, cliConn cliC
 		return nil, err
 	}
 
+	if registrationType == metricsEndpoint {
+		return getAllMetricsRegistrations(registrationFetcher, app.Guid)
+	}
+
 	return registrationFetcher.Fetch(app.Guid, registrationType)
+}
+
+func getAllMetricsRegistrations(fetcher registrationFetcher, guid string) ([]registrations.Registration, error) {
+	r1, err := fetcher.Fetch(guid, metricsEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	r2, err := fetcher.Fetch(guid, secureEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	r1 = append(r1, r2...)
+	return r1, nil
 }
 
 func removeRegistration(appName, config string, registration registrations.Registration, cliConn cliCommandRunner) error {

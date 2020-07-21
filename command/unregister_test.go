@@ -80,13 +80,13 @@ var _ = Describe("Unregister", func() {
 			registrationFetcher.registrations["app-guid"] = []registrations.Registration{
 				{
 					Name:             "service1",
-					Type:             "log-format",
+					Type:             "structured-format",
 					Config:           "json",
 					NumberOfBindings: 2,
 				},
 				{
 					Name:             "service2",
-					Type:             "log-format",
+					Type:             "structured-format",
 					Config:           "not-this-one",
 					NumberOfBindings: 2,
 				},
@@ -95,7 +95,7 @@ var _ = Describe("Unregister", func() {
 			err := command.UnregisterLogFormat(registrationFetcher, cliConnection, "app-name", "json")
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+			Eventually(cliConnection.cliCommandsCalled).Should(Receive(ConsistOf(
 				"unbind-service",
 				"app-name",
 				"service1",
@@ -170,9 +170,9 @@ var _ = Describe("Unregister", func() {
 			registrationFetcher := newMockRegistrationFetcher()
 			registrationFetcher.registrations["app-guid"] = []registrations.Registration{
 				{
-					Name:             "service1",
-					Type:             "metrics-endpoint",
-					Config:           ":9090/metrics",
+					Name:             "secure-endpoint-2112-metrics",
+					Type:             "secure-endpoint",
+					Config:           ":2112/metrics",
 					NumberOfBindings: 2,
 				},
 				{
@@ -186,16 +186,16 @@ var _ = Describe("Unregister", func() {
 			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
-				"unbind-service",
-				"app-name",
-				"service1",
-			)))
-
-			Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
+			Eventually(cliConnection.cliCommandsCalled).Should(Receive(ConsistOf(
 				"unbind-service",
 				"app-name",
 				"service2",
+			)))
+
+			Eventually(cliConnection.cliCommandsCalled).Should(Receive(ConsistOf(
+				"unbind-service",
+				"app-name",
+				"secure-endpoint-2112-metrics",
 			)))
 		})
 
