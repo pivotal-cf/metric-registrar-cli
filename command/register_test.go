@@ -3,7 +3,7 @@ package command_test
 import (
 	"errors"
 
-	"code.cloudfoundry.org/cli/plugin/models"
+	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	"github.com/pivotal-cf/metric-registrar-cli/command"
 
 	. "github.com/onsi/ginkgo"
@@ -75,7 +75,7 @@ var _ = Describe("Register", func() {
 		It("creates a service given a path", func() {
 			cliConnection := newMockCliConnection()
 
-			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics")
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService(
 				"metrics-endpoint-metrics",
@@ -92,7 +92,7 @@ var _ = Describe("Register", func() {
 		It("creates a service given a route", func() {
 			cliConnection := newMockCliConnection()
 
-			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "app-host.app-domain/app-path/metrics")
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "app-host.app-domain/app-path/metrics", "")
 			Expect(err).ToNot(HaveOccurred())
 			serviceName, endpoint := expectToReceiveCupsArgs(cliConnection.cliCommandsCalled)
 			Expect(serviceName).To(HavePrefix("metrics-endpoint-"))
@@ -103,7 +103,7 @@ var _ = Describe("Register", func() {
 
 		It("checks the route", func() {
 			cliConnection := newMockCliConnection()
-			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "not-app-host.app-domain/app-path/metrics")
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "not-app-host.app-domain/app-path/metrics", "")
 
 			Expect(err).To(MatchError("route 'not-app-host.app-domain/app-path/metrics' is not bound to app 'app-name'"))
 		})
@@ -111,7 +111,7 @@ var _ = Describe("Register", func() {
 		It("does not use service names longer than 50 characters", func() {
 			cliConnection := newMockCliConnection()
 
-			err := command.RegisterMetricsEndpoint(cliConnection, "very-long-app-name-with-many-characters", "/metrics")
+			err := command.RegisterMetricsEndpoint(cliConnection, "very-long-app-name-with-many-characters", "/metrics", "")
 			Expect(err).ToNot(HaveOccurred())
 			serviceName, _ := expectToReceiveCupsArgs(cliConnection.cliCommandsCalled)
 			Expect(len(serviceName)).To(BeNumerically("<=", 50))
@@ -125,7 +125,7 @@ var _ = Describe("Register", func() {
 				{Name: "metrics-endpoint-metrics"},
 			}
 
-			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics")
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliConnection.cliCommandsCalled).To(receiveBindService())
 			Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
@@ -134,7 +134,7 @@ var _ = Describe("Register", func() {
 		It("replaces slashes in the service name", func() {
 			cliConnection := newMockCliConnection()
 
-			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/v2/path/")
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/v2/path/", "")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService(
 				"metrics-endpoint-v2-path",
@@ -153,7 +153,7 @@ var _ = Describe("Register", func() {
 				},
 			}}
 
-			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "tcp.app-domain/v2/path/")).To(Succeed())
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "tcp.app-domain/v2/path/", "")).To(Succeed())
 			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService(
 				"metrics-endpoint-tcp.app-domain-v2-path",
 				"-l",
@@ -161,18 +161,35 @@ var _ = Describe("Register", func() {
 			))
 		})
 
+		It("creates a service given a path and an internal port", func() {
+			cliConnection := newMockCliConnection()
+
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "1234")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService(
+				"secure-endpoint-1234-metrics",
+				"-l",
+				"secure-endpoint://:1234/metrics",
+			))
+
+			Expect(cliConnection.cliCommandsCalled).To(receiveBindService(
+				"app-name",
+				"secure-endpoint-1234-metrics",
+			))
+		})
+
 		It("returns error if getting the app fails", func() {
 			cliConnection := newMockCliConnection()
 			cliConnection.getAppError = errors.New("error")
 
-			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "app-host.app-domain/app-path/metrics")).ToNot(Succeed())
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "app-host.app-domain/app-path/metrics", "")).ToNot(Succeed())
 			Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
 		})
 
 		It("returns an error if parsing the route fails", func() {
 			cliConnection := newMockCliConnection()
 
-			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "#$%#$%#")
+			err := command.RegisterMetricsEndpoint(cliConnection, "app-name", "#$%#$%#", "")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(HavePrefix("unable to parse requested route:"))
 			Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
@@ -182,7 +199,7 @@ var _ = Describe("Register", func() {
 			cliConnection := newMockCliConnection()
 			cliConnection.getServicesError = errors.New("error")
 
-			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics")).ToNot(Succeed())
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "")).ToNot(Succeed())
 			Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
 		})
 
@@ -190,7 +207,7 @@ var _ = Describe("Register", func() {
 			cliConnection := newMockCliConnection()
 			cliConnection.cliErrorCommand = "create-user-provided-service"
 
-			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics")).ToNot(Succeed())
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "")).ToNot(Succeed())
 
 			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService())
 			Expect(cliConnection.cliCommandsCalled).ToNot(Receive())
@@ -200,7 +217,7 @@ var _ = Describe("Register", func() {
 			cliConnection := newMockCliConnection()
 			cliConnection.cliErrorCommand = "bind-service"
 
-			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics")).ToNot(Succeed())
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/metrics", "")).ToNot(Succeed())
 
 			Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService())
 			Expect(cliConnection.cliCommandsCalled).To(receiveBindService())

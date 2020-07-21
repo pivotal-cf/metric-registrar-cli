@@ -53,7 +53,8 @@ var registerLogFormatFlags = &struct {
 }{}
 
 var registerMetricsEndpointFlags = &struct {
-	Args struct {
+	InternalPort string `short:"p" long:"internal-port"`
+	Args         struct {
 		AppName string `positional-arg-name:"APP_NAME"`
 		Path    string `positional-arg-name:"PATH"`
 	} `positional-args:"APP_NAME PATH" required:"2"`
@@ -92,8 +93,14 @@ var Registry = map[string]Command{
 		},
 	},
 	registerMetricsEndpointCommand: {
-		name:      registerMetricsEndpointCommand,
-		HelpText:  "Register a metrics endpoint which will be scraped at the interval defined at deploy",
+		name:     registerMetricsEndpointCommand,
+		HelpText: "Register a metrics endpoint which will be scraped at the interval defined at deploy",
+		Options: map[string]Option{
+			"-internal-port": {
+				Name:        "PORT",
+				Description: "Port for secure metrics endpoint scraping",
+			},
+		},
 		Arguments: []string{"APP_NAME", "PATH"},
 		Flags:     registerMetricsEndpointFlags,
 		Run: func(_ registrationFetcher, conn plugin.CliConnection) error {
@@ -101,6 +108,7 @@ var Registry = map[string]Command{
 				conn,
 				registerMetricsEndpointFlags.Args.AppName,
 				registerMetricsEndpointFlags.Args.Path,
+				registerMetricsEndpointFlags.InternalPort,
 			)
 		},
 	},

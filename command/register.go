@@ -14,7 +14,8 @@ func RegisterLogFormat(cliConn cliCommandRunner, appName, logFormat string) erro
 	return ensureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
 }
 
-func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route string) error {
+func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalPort string) error {
+	serviceProtocol := metricsEndpoint
 	if route[0] != '/' {
 		app, err := cliConn.GetApp(appName)
 		if err != nil {
@@ -27,7 +28,11 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route string) er
 		}
 
 	}
-	return ensureServiceAndBind(cliConn, appName, metricsEndpoint, route)
+	if internalPort != "" {
+		route = ":" + internalPort + route
+		serviceProtocol = secureEndpoint
+	}
+	return ensureServiceAndBind(cliConn, appName, serviceProtocol, route)
 }
 
 func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) error {
@@ -86,7 +91,7 @@ func ensureServiceAndBind(cliConn cliCommandRunner, appName, serviceProtocol, co
 }
 
 func generateServiceName(serviceProtocol string, config string) string {
-	cleanedConfig := strings.Trim(strings.Replace(config, "/", "-", -1), "-")
+	cleanedConfig := sanitizeConfig(config)
 	serviceName := serviceProtocol + "-" + cleanedConfig
 	// Cloud Controller limits service name lengths:
 	// see https://github.com/cloudfoundry/cloud_controller_ng/blob/master/vendor/errors/v2.yml#L231
@@ -96,6 +101,12 @@ func generateServiceName(serviceProtocol string, config string) string {
 		serviceName = serviceProtocol + "-" + strings.Trim(base64.URLEncoding.EncodeToString(hasher.Sum(nil)), "=")
 	}
 	return serviceName
+}
+
+func sanitizeConfig(config string) string {
+	slashToDashes := strings.Replace(config, "/", "-", -1)
+	removeColons := strings.Replace(slashToDashes, ":", "", -1)
+	return strings.Trim(removeColons, "-")
 }
 
 func findExistingService(cliConn cliCommandRunner, serviceName string) (bool, error) {

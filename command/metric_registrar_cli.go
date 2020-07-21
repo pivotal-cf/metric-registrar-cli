@@ -7,7 +7,7 @@ import (
 	"github.com/pivotal-cf/metric-registrar-cli/registrations"
 
 	"code.cloudfoundry.org/cli/plugin"
-	"code.cloudfoundry.org/cli/plugin/models"
+	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -16,6 +16,7 @@ const (
 
 	structuredFormat = "structured-format"
 	metricsEndpoint  = "metrics-endpoint"
+	secureEndpoint   = "secure-endpoint"
 )
 
 type MetricRegistrarCli struct {
