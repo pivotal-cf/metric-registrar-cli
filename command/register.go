@@ -37,7 +37,6 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalP
 		route = ":" + internalPort + route
 		serviceProtocol = secureEndpoint
 		port, err := strconv.Atoi(internalPort)
-		fmt.Printf("====port===: %d\n", port)
 		if err != nil {
 			return err
 		}
@@ -48,52 +47,6 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalP
 	}
 
 	return ensureServiceAndBind(cliConn, appName, serviceProtocol, route)
-}
-
-type response struct {
-	entity entity `json: "entity"`
-}
-type entity struct {
-	ports []int `json:"ports"`
-}
-
-func getPortsForApp(cliConn cliCommandRunner, guid string) ([]int, error) {
-	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
-	output, err := cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint)
-	joined := strings.Join(output, "")
-
-	response := response{}
-	err = json.Unmarshal([]byte(joined), &response)
-	return response.entity.ports, err
-}
-
-func setPortsForApp(cliConn cliCommandRunner, guid string, ports []int) error {
-	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
-	newPortsEntity := entity{ports: ports}
-
-	// TODO: how to marshal!?!?! this is returning not what we expect
-	marshaledBody, err := json.Marshal(newPortsEntity)
-	fmt.Println("======================", marshaledBody)
-	stringPorts := strings.Replace(fmt.Sprint(ports), " ", ",", -1)
-	fmtBody := fmt.Sprintf("{\"ports\":%s}", stringPorts)
-	fmt.Println(fmtBody)
-	if err != nil {
-		return err
-	}
-
-	_, err = cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint, "-X", "PUT", "-d", string(fmtBody))
-	return err
-}
-
-func exposePortForApp(cliConn cliCommandRunner, guid string, port int) error {
-	existingPorts, err := getPortsForApp(cliConn, guid)
-	if err != nil {
-		return err
-	}
-	// TODO: what if port is already in existingPorts?
-	newPorts := append(existingPorts, port)
-	fmt.Println(newPorts)
-	return setPortsForApp(cliConn, guid, newPorts)
 }
 
 func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) error {
@@ -115,6 +68,59 @@ func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) er
 	}
 	return fmt.Errorf("route '%s' is not bound to app '%s'", requestedRoute, app.Name)
 }
+
+func exposePortForApp(cliConn cliCommandRunner, guid string, port int) error {
+	existingPorts, err := getPortsForApp(cliConn, guid)
+	if err != nil {
+		return err
+	}
+
+	// don't need to make a PUT request if it's already exposed
+	for _, p := range existingPorts {
+		if p == port {
+			return nil
+		}
+	}
+
+	newPorts := append(existingPorts, port)
+	return setPortsForApp(cliConn, guid, newPorts)
+}
+
+/*********************** TODO: new file? ************************************/
+type response struct {
+	Entity entity `json: "entity"`
+}
+
+type entity struct {
+	Ports []int `json:"ports"`
+}
+
+func getPortsForApp(cliConn cliCommandRunner, guid string) ([]int, error) {
+	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
+	output, err := cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint)
+	joined := strings.Join(output, "")
+
+	response := response{}
+	err = json.Unmarshal([]byte(joined), &response)
+	return response.Entity.Ports, err
+}
+
+func setPortsForApp(cliConn cliCommandRunner, guid string, ports []int) error {
+	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
+
+	newPortsEntity := entity{Ports: ports}
+	portsBody, err := json.Marshal(newPortsEntity)
+	if err != nil {
+		return err
+	}
+
+	// TODO: do we need to wrap it in single quotes like we do in the term?
+	wrappedPortsBody := fmt.Sprintf("'%s'", string(portsBody))
+	_, err = cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint, "-X", "PUT", "-d", wrappedPortsBody)
+	return err
+}
+
+/************************************************************************/
 
 func formatHost(r pluginmodels.GetApp_RouteSummary) string {
 	host := r.Domain.Name

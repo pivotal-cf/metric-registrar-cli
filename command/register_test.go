@@ -183,9 +183,9 @@ var _ = Describe("Register", func() {
 			))
 		})
 
-		FIt("exposes the internal port for a secure endpoint automatically", func() {
+		It("exposes the internal port automatically and preserves existing ports", func() {
 			cliConnection := newMockCliConnection()
-			cliConnection.getAppsInfoResult = strings.Split(getFakeAppsInfoResponse([]int{1234}), "\n")
+			cliConnection.exposedPorts = []int{1234}
 
 			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/v2/metrics", "2112")).To(Succeed())
 			expectToReceiveCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []string{"1234", "2112"})
@@ -272,7 +272,7 @@ func expectToReceiveCurlForAppAndPort(called chan []string, appGuid string, port
 	Expect(args[2]).To(Equal("-X"))
 	Expect(args[3]).To(Equal("PUT"))
 	Expect(args[4]).To(Equal("-d"))
-	Expect(args[5]).To(Equal(fmt.Sprintf("'{\"ports\": [%s]}'", strings.Join(ports, ","))))
+	Expect(args[5]).To(Equal(fmt.Sprintf("'{\"ports\":[%s]}'", strings.Join(ports, ","))))
 }
 
 func matchBindService(args ...string) types.GomegaMatcher {

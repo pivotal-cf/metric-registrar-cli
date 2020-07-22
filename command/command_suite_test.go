@@ -31,8 +31,8 @@ type mockCliConnection struct {
 	getAppsResult []plugin_models.GetAppsModel
 	getAppsError  error
 
-	getAppsInfoResult []string
-	getAppsInfoError  error
+	exposedPorts     []int
+	getAppsInfoError error
 }
 
 func (c *mockCliConnection) GetServices() ([]plugin_models.GetServices_Model, error) {
@@ -53,13 +53,15 @@ func newMockCliConnection() *mockCliConnection {
 				Path: "app-path",
 			}},
 		},
-		getAppsInfoResult: strings.Split(getFakeAppsInfoResponse([]int{}), "\n"),
+		exposedPorts: []int{8080},
 	}
 }
 
 func (c *mockCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
 	if len(args) == 2 && args[0] == "curl" && strings.Contains(args[1], "/v2/apps/") {
-		return c.getAppsInfoResult, c.getAppsInfoError
+		response := getFakeAppsInfoResponse(c.exposedPorts)
+		output := strings.Split(response, "\n")
+		return output, c.getAppsInfoError
 	}
 
 	c.cliCommandsCalled <- args
@@ -151,10 +153,7 @@ const (
       "package_updated_at": "2020-07-21T22:09:59Z",
       "detected_start_command": "./bin/go-app-with-metrics",
       "enable_ssh": true,
-      "ports": [
-         1234,
-		 %s
-      ],
+      "ports": %s,
       "space_url": "/v2/spaces/eefee588-c08a-4fde-b0e3-8b2a6309e365",
       "stack_url": "/v2/stacks/a3fd69f2-b350-4515-86a9-7fab406e8544",
       "routes_url": "/v2/apps/419aa316-c70b-40f9-b38b-c99e693e7620/routes",
