@@ -33,6 +33,7 @@ type mockCliConnection struct {
 
 	exposedPorts     []int
 	getAppsInfoError error
+	putAppsInfoError error
 }
 
 func (c *mockCliConnection) GetServices() ([]plugin_models.GetServices_Model, error) {
@@ -58,13 +59,20 @@ func newMockCliConnection() *mockCliConnection {
 }
 
 func (c *mockCliConnection) CliCommandWithoutTerminalOutput(args ...string) ([]string, error) {
-	if len(args) == 2 && args[0] == "curl" && strings.Contains(args[1], "/v2/apps/") {
+	c.cliCommandsCalled <- args
+
+	// curl /v2/apps
+	if args[0] == "curl" && strings.Contains(args[1], "/v2/apps/") {
 		response := getFakeAppsInfoResponse(c.exposedPorts)
 		output := strings.Split(response, "\n")
-		return output, c.getAppsInfoError
+
+		if len(args) == 2 {
+			return output, c.getAppsInfoError
+		} else {
+			return output, c.putAppsInfoError
+		}
 	}
 
-	c.cliCommandsCalled <- args
 	if args[0] == c.cliErrorCommand {
 		return nil, errors.New("error")
 	}

@@ -236,9 +236,18 @@ var _ = Describe("Register", func() {
 			Expect(cliConnection.cliCommandsCalled).To(receiveBindService())
 		})
 
-		It("returns error if exposing port fails", func() {
-			// cf curl put ..... fails
-			Fail("not implemented")
+		It("returns error if getting existing ports fails", func() {
+			cliConnection := newMockCliConnection()
+			cliConnection.getAppsInfoError = errors.New("failed to fetch apps info")
+
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/v2/metrics", "2112")).ToNot(Succeed())
+		})
+
+		It("returns error if setting port fails", func() {
+			cliConnection := newMockCliConnection()
+			cliConnection.putAppsInfoError = errors.New("failed to put apps info")
+
+			Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "/v2/metrics", "2112")).ToNot(Succeed())
 		})
 	})
 })
@@ -264,15 +273,22 @@ func receiveCreateUserProvidedService(args ...string) types.GomegaMatcher {
 	return Receive(matchCreateUserProvidedService(args...))
 }
 
+func matchCurl(args ...string) types.GomegaMatcher {
+	if len(args) == 0 {
+		return ContainElement("curl")
+	}
+
+	return Equal(append([]string{"curl"}, args...))
+}
+
 func expectToReceiveCurlForAppAndPort(called chan []string, appGuid string, ports []string) {
-	var args []string
-	Expect(called).To(Receive(&args))
-	Expect(args[0]).To(Equal("curl"))
-	Expect(args[1]).To(Equal(fmt.Sprintf("/v2/apps/%s", appGuid)))
-	Expect(args[2]).To(Equal("-X"))
-	Expect(args[3]).To(Equal("PUT"))
-	Expect(args[4]).To(Equal("-d"))
-	Expect(args[5]).To(Equal(fmt.Sprintf("'{\"ports\":[%s]}'", strings.Join(ports, ","))))
+	Eventually(called).Should(Receive(matchCurl(
+		fmt.Sprintf("/v2/apps/%s", appGuid),
+		"-X",
+		"PUT",
+		"-d",
+		fmt.Sprintf("'{\"ports\":[%s]}'", strings.Join(ports, ",")),
+	)))
 }
 
 func matchBindService(args ...string) types.GomegaMatcher {

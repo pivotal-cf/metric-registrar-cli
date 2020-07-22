@@ -98,6 +98,9 @@ type entity struct {
 func getPortsForApp(cliConn cliCommandRunner, guid string) ([]int, error) {
 	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
 	output, err := cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint)
+	if err != nil {
+		return []int{}, err
+	}
 	joined := strings.Join(output, "")
 
 	response := response{}
