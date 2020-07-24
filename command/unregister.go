@@ -14,6 +14,7 @@ func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn 
 
 func removeRegistrations(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, registrationType, config string) error {
 	existingRegistrations, err := existingRegistrations(registrationFetcher, cliConn, appName, registrationType)
+
 	if err != nil {
 		return err
 	}
@@ -61,8 +62,6 @@ func removeRegistration(appName, config string, registration registrations.Regis
 		return nil
 	}
 
-	// TODO: if registration.Type == secureEndpoint
-
 	_, err := cliConn.CliCommandWithoutTerminalOutput("unbind-service", appName, registration.Name)
 	if err != nil {
 		return err
@@ -74,6 +73,5 @@ func removeRegistration(appName, config string, registration registrations.Regis
 			return err
 		}
 	}
-
 	return nil
 }

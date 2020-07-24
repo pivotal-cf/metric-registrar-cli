@@ -199,8 +199,31 @@ var _ = Describe("Unregister", func() {
 			)))
 		})
 
+		//TODO: fix
 		It("removes exposed ports", func() {
-			Fail("not implemented")
+			cliConnection := newMockCliConnection()
+			cliConnection.exposedPorts = []int{1234, 2112}
+
+			registrationFetcher := newMockRegistrationFetcher()
+			registrationFetcher.registrations["app-guid"] = []registrations.Registration{
+				{
+					Name:             "service1",
+					Type:             "metrics-endpoint",
+					Config:           ":2112/metrics",
+					NumberOfBindings: 1,
+				},
+			}
+			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
+			Expect(err).ToNot(HaveOccurred())
+
+			Eventually(cliConnection.cliCommandsCalled).Should(Receive(ContainElements(
+				"curl",
+				"/v2/apps/app-guid",
+				"-X",
+				"PUT",
+				"-d",
+				"'{\"ports\":[1234]}'",
+			)))
 		})
 
 		It("deletes service if no more apps bound", func() {
@@ -325,8 +348,13 @@ var _ = Describe("Unregister", func() {
 			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
 		})
 
+		//TODO: fix
 		It("returns an error if unregistering the port returns an error", func() {
-			Fail("not implemented")
+			cliConnection := newMockCliConnection()
+			registrationFetcher := newMockRegistrationFetcher()
+			cliConnection.getAppsInfoError = errors.New("cf doesn't want to speak to you rn")
+
+			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "2112")).ToNot(Succeed())
 		})
 	})
 })

@@ -3,11 +3,12 @@ package command
 import (
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/pivotal-cf/metric-registrar-cli/ports"
 
 	pluginmodels "code.cloudfoundry.org/cli/plugin/models"
 )
@@ -70,7 +71,7 @@ func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) er
 }
 
 func exposePortForApp(cliConn cliCommandRunner, guid string, port int) error {
-	existingPorts, err := getPortsForApp(cliConn, guid)
+	existingPorts, err := ports.GetPortsForApp(cliConn, guid)
 	if err != nil {
 		return err
 	}
@@ -83,47 +84,8 @@ func exposePortForApp(cliConn cliCommandRunner, guid string, port int) error {
 	}
 
 	newPorts := append(existingPorts, port)
-	return setPortsForApp(cliConn, guid, newPorts)
+	return ports.SetPortsForApp(cliConn, guid, newPorts)
 }
-
-/*********************** TODO: new file? ************************************/
-type response struct {
-	Entity entity `json: "entity"`
-}
-
-type entity struct {
-	Ports []int `json:"ports"`
-}
-
-func getPortsForApp(cliConn cliCommandRunner, guid string) ([]int, error) {
-	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
-	output, err := cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint)
-	if err != nil {
-		return []int{}, err
-	}
-	joined := strings.Join(output, "")
-
-	response := response{}
-	err = json.Unmarshal([]byte(joined), &response)
-	return response.Entity.Ports, err
-}
-
-func setPortsForApp(cliConn cliCommandRunner, guid string, ports []int) error {
-	appsEndpoint := fmt.Sprintf("/v2/apps/%s", guid)
-
-	newPortsEntity := entity{Ports: ports}
-	portsBody, err := json.Marshal(newPortsEntity)
-	if err != nil {
-		return err
-	}
-
-	// TODO: do we need to wrap it in single quotes like we do in the term?
-	wrappedPortsBody := fmt.Sprintf("'%s'", string(portsBody))
-	_, err = cliConn.CliCommandWithoutTerminalOutput("curl", appsEndpoint, "-X", "PUT", "-d", wrappedPortsBody)
-	return err
-}
-
-/************************************************************************/
 
 func formatHost(r pluginmodels.GetApp_RouteSummary) string {
 	host := r.Domain.Name
