@@ -2,6 +2,8 @@ package command_test
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/pivotal-cf/metric-registrar-cli/command"
 	"github.com/pivotal-cf/metric-registrar-cli/registrations"
@@ -199,7 +201,6 @@ var _ = Describe("Unregister", func() {
 			)))
 		})
 
-		//TODO: fix
 		It("removes exposed ports", func() {
 			cliConnection := newMockCliConnection()
 			cliConnection.exposedPorts = []int{1234, 2112}
@@ -215,15 +216,7 @@ var _ = Describe("Unregister", func() {
 			}
 			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
 			Expect(err).ToNot(HaveOccurred())
-
-			Eventually(cliConnection.cliCommandsCalled).Should(Receive(ContainElements(
-				"curl",
-				"/v2/apps/app-guid",
-				"-X",
-				"PUT",
-				"-d",
-				"'{\"ports\":[1234]}'",
-			)))
+			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []int{2112})
 		})
 
 		It("deletes service if no more apps bound", func() {
@@ -286,7 +279,13 @@ var _ = Describe("Unregister", func() {
 				"service1",
 			)))
 
-			Expect(cliConnection.cliCommandsCalled).To(BeEmpty())
+			Expect(cliConnection.cliCommandsCalled).To(Not(Receive(ConsistOf(
+				"unbind-service",
+				"app-name",
+				"service2",
+			))))
+
+			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []int{9090})
 		})
 
 		It("doesn't unbind services if registration fetcher doesn't find any", func() {
@@ -348,7 +347,6 @@ var _ = Describe("Unregister", func() {
 			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
 		})
 
-		//TODO: fix
 		It("returns an error if unregistering the port returns an error", func() {
 			cliConnection := newMockCliConnection()
 			registrationFetcher := newMockRegistrationFetcher()
@@ -358,3 +356,17 @@ var _ = Describe("Unregister", func() {
 		})
 	})
 })
+
+func expectToReceivePutCurlForAppAndPort(called chan []string, appGuid string, ports []int) {
+	Eventually(called).Should(Receive(matchCurl(
+		fmt.Sprintf("/v2/apps/%s", appGuid),
+		"-X",
+		"PUT",
+		"-d",
+		fmt.Sprintf("'{\"ports\":%s}'", transformToString(ports)),
+	)))
+}
+
+func transformToString(i []int) string {
+	return strings.Replace(fmt.Sprintf("%v", i), " ", ",", -1)
+}
