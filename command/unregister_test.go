@@ -216,7 +216,7 @@ var _ = Describe("Unregister", func() {
 			}
 			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
 			Expect(err).ToNot(HaveOccurred())
-			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []int{2112})
+			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []int{1234})
 		})
 
 		It("deletes service if no more apps bound", func() {
@@ -247,7 +247,7 @@ var _ = Describe("Unregister", func() {
 			)))
 		})
 
-		It("only unbinds specified service if path is set", func() {
+		FIt("only unbinds specified service if path is set", func() {
 			cliConnection := newMockCliConnection()
 			registrationFetcher := newMockRegistrationFetcher()
 			registrationFetcher.registrations["app-guid"] = []registrations.Registration{
@@ -285,7 +285,7 @@ var _ = Describe("Unregister", func() {
 				"service2",
 			))))
 
-			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []int{9090})
+			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []int{8080, 9090})
 		})
 
 		It("doesn't unbind services if registration fetcher doesn't find any", func() {

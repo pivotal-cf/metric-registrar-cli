@@ -48,23 +48,43 @@ func removeMetricRegistrations(registrationFetcher registrationFetcher, cliConn 
 		return err
 	}
 
+	existingRegistrations, err := getAllMetricsRegistrations(registrationFetcher, app.Guid)
+	if err != nil {
+		return err
+	}
+
+	portsToRemove, err := removeMatchingRegistrations(existingRegistrations, config, appName, cliConn)
+
+	currentPorts, err := porter.GetPortsForApp(cliConn, app.Guid)
+	if err != nil {
+		return err
+	}
+
+	remainingPorts := getRemainingPorts(currentPorts, portsToRemove)
+
+	// call setPorts with only ports that need to remain
+	err = porter.SetPortsForApp(cliConn, app.Guid, remainingPorts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func removeMatchingRegistrations(registrations []registrations.Registration, config, appName string, cliConn cliCommandRunner) ([]int, error) {
 	portsToRemove := []int{}
 
-	// if a port was passed as part of the config, it should be the only one
-	// removed
 	port, configHasPort := getPortFromConfig(config)
 	if configHasPort {
 		portsToRemove = append(portsToRemove, port)
 	}
 
-	existingRegistrations, err := getAllMetricsRegistrations(registrationFetcher, app.Guid)
-	for _, registration := range existingRegistrations {
+	for _, registration := range registrations {
 		if config != "" && config != registration.Config {
 			continue
 		}
 		err := removeRegistration(appName, config, registration, cliConn)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if !configHasPort {
 			p, isP := getPortFromConfig(registration.Config)
@@ -73,36 +93,32 @@ func removeMetricRegistrations(registrationFetcher registrationFetcher, cliConn 
 			}
 		}
 	}
+	return portsToRemove, nil
+}
 
-	exposedPorts, err := porter.GetPortsForApp(cliConn, app.Guid)
-	if err != nil {
-		return err
+func getRemainingPorts(currentPorts, portsToRemove []int) []int {
+	stay := map[int]bool{}
+	for _, p := range currentPorts {
+		stay[p] = true
+	}
+	for _, p := range portsToRemove {
+		stay[p] = false
 	}
 
-	// loop over exposedPorts and omit those which need to be removed
 	portsForCurl := []int{}
-	for _, port := range exposedPorts {
-		del := false
-		for _, p := range portsToRemove {
-			if port == p {
-				del = true
-				break
-			}
-		}
-		if del == false {
-			portsForCurl = append(portsForCurl, port)
+	for p, ok := range stay {
+		if ok {
+			portsForCurl = append(portsForCurl, p)
 		}
 	}
 
-	// call setPorts with only ports that need to remain
-	err = porter.SetPortsForApp(cliConn, app.Guid, portsForCurl)
-	if err != nil {
-		return err
-	}
-	return nil
+	return portsForCurl
 }
 
 func getPortFromConfig(config string) (int, bool) {
+	if config == "" {
+		return 0, false
+	}
 	char := string(config[0])
 	if char != ":" {
 		return 0, false
