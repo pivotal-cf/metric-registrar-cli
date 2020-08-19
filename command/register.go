@@ -13,29 +13,34 @@ import (
 	pluginmodels "code.cloudfoundry.org/cli/plugin/models"
 )
 
+const (
+	secureWarning = "Using a secure endpoint by specifying --internal-port is preferred, but not supported in all versions. See documentation for further details https://docs.pivotal.io/platform/application-service/2-10/metric-registrar/using.html"
+)
+
 func RegisterLogFormat(cliConn cliCommandRunner, appName, logFormat string) error {
 	return ensureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
 }
 
-func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalPort string) error {
+func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalPort string, insecure bool) error {
+	// validate flags
+	if internalPort == "" && !insecure {
+		return fmt.Errorf("need to pass either --internal-port or --insecure")
+	}
+
 	app, err := cliConn.GetApp(appName)
 	if err != nil {
 		return err
 	}
 
-	// if they provide a full URL rather than a relative path, we need to
-	// verify that the route is actually associated with the app
-	// (we don't want people trying to scrape https://cia.gov/metrics)
-	if route[0] != '/' {
-		err = validateRouteForApp(route, app)
-		if err != nil {
-			return err
-		}
+	validRoute, err := validateRouteForApp(route, app, !insecure)
+	if err != nil {
+		return err
 	}
 
+	fmt.Printf(secureWarning)
 	serviceProtocol := metricsEndpoint
-	if internalPort != "" {
-		route = ":" + internalPort + route
+	if !insecure {
+		route = ":" + internalPort + validRoute.Path
 		serviceProtocol = secureEndpoint
 		port, err := strconv.Atoi(internalPort)
 		if err != nil {
@@ -50,24 +55,35 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalP
 	return ensureServiceAndBind(cliConn, appName, serviceProtocol, route)
 }
 
-func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel) error {
+func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel, secure bool) (url.URL, error) {
+	// if they just provide a relative path, we can associate it with the app
+	if requestedRoute[0] == '/' {
+		return url.URL{Path: requestedRoute}, nil
+	}
+
 	requested, err := url.Parse(ensureHttpsPrefix(requestedRoute))
 	if err != nil {
-		return fmt.Errorf("unable to parse requested route: %s", err)
+		return url.URL{}, fmt.Errorf("unable to parse requested route: %s", err)
 	}
+
+	if secure && requested.Host != "" {
+		return url.URL{}, fmt.Errorf("cannot provide hostname with --internal-port. provided: '%s'", requested.Host)
+	}
+
 	for _, r := range app.Routes {
 		var host string
 		host = formatHost(r)
-		route := &url.URL{
+		route := url.URL{
 			Host: host,
 			Path: "/" + r.Path,
 		}
 
 		if requested.Host == route.Host && strings.HasPrefix(requested.Path, route.Path) {
-			return nil
+			return route, nil
 		}
+
 	}
-	return fmt.Errorf("route '%s' is not bound to app '%s'", requestedRoute, app.Name)
+	return url.URL{}, fmt.Errorf("route '%s' is not bound to app '%s'", requestedRoute, app.Name)
 }
 
 func exposePortForApp(cliConn cliCommandRunner, guid string, port int) error {

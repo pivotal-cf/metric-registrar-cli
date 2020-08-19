@@ -54,6 +54,7 @@ var registerLogFormatFlags = &struct {
 
 var registerMetricsEndpointFlags = &struct {
 	InternalPort string `short:"p" long:"internal-port"`
+	Insecure     bool   `short:"k" long:"insecure"`
 	Args         struct {
 		AppName string `positional-arg-name:"APP_NAME"`
 		Path    string `positional-arg-name:"PATH"`
@@ -100,6 +101,10 @@ var Registry = map[string]Command{
 				Name:        "PORT",
 				Description: "Port for secure metrics endpoint scraping",
 			},
+			"-insecure": {
+				Name:        "INSECURE",
+				Description: "Use legacy insecure HTTP endpoint",
+			},
 		},
 		Arguments: []string{"APP_NAME", "PATH"},
 		Flags:     registerMetricsEndpointFlags,
@@ -109,6 +114,7 @@ var Registry = map[string]Command{
 				registerMetricsEndpointFlags.Args.AppName,
 				registerMetricsEndpointFlags.Args.Path,
 				registerMetricsEndpointFlags.InternalPort,
+				registerMetricsEndpointFlags.Insecure,
 			)
 		},
 	},
@@ -132,8 +138,9 @@ var Registry = map[string]Command{
 		},
 	},
 	unregisterMetricsEndpointCommand: {
-		name:     unregisterMetricsEndpointCommand,
-		HelpText: "Unregister metrics endpoints",
+		name:      unregisterMetricsEndpointCommand,
+		HelpText:  "Unregister metrics endpoints",
+		Arguments: []string{"APP_NAME"},
 		Options: map[string]Option{
 			"p": {
 				Name:        "PATH",
