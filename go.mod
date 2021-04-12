@@ -1,6 +1,6 @@
 module github.com/pivotal-cf/metric-registrar-cli
 
-go 1.15
+go 1.16
 
 require (
 	code.cloudfoundry.org/cli v7.0.1+incompatible
