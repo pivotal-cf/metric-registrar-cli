@@ -264,6 +264,34 @@ var _ = Describe("Register", func() {
 				Expect(err).To(MatchError("route 'not-app-host.app-domain/app-path/metrics' is not bound to app 'app-name'"))
 			})
 
+			It("checks the route when domain is passed correctly", func() {
+				cliConnection := newMockCliConnection()
+				Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "app-host.app-domain/app-path", "", true)).To(Succeed())
+				Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService(
+					"metrics-endpoint-app-host.app-domain-app-path",
+					"-l",
+					"metrics-endpoint://app-host.app-domain/app-path",
+				))
+			})
+
+			It("checks the route when app route starts with //", func() {
+				cliConnection := newMockCliConnection()
+
+				cliConnection.getAppResult.Routes = []plugin_models.GetApp_RouteSummary{{
+					Host: "app-host",
+					Domain: plugin_models.GetApp_DomainFields{
+						Name: "app-domain",
+					},
+					Path: "/app-path",
+				}}
+				Expect(command.RegisterMetricsEndpoint(cliConnection, "app-name", "app-host.app-domain/app-path", "", true)).To(Succeed())
+				Expect(cliConnection.cliCommandsCalled).To(receiveCreateUserProvidedService(
+					"metrics-endpoint-app-host.app-domain-app-path",
+					"-l",
+					"metrics-endpoint://app-host.app-domain/app-path",
+				))
+			})
+
 			It("parses routes without hosts correctly", func() {
 				cliConnection := newMockCliConnection()
 
