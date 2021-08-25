@@ -13,10 +13,6 @@ import (
 	pluginmodels "code.cloudfoundry.org/cli/plugin/models"
 )
 
-const (
-	secureWarning = "Using a secure endpoint by specifying --internal-port is preferred, but not supported in all versions. See documentation for further details https://docs.pivotal.io/platform/application-service/2-10/metric-registrar/using.html"
-)
-
 func RegisterLogFormat(cliConn cliCommandRunner, appName, logFormat string) error {
 	return ensureServiceAndBind(cliConn, appName, structuredFormat, logFormat)
 }
@@ -37,7 +33,6 @@ func RegisterMetricsEndpoint(cliConn cliCommandRunner, appName, route, internalP
 		return err
 	}
 
-	fmt.Printf(secureWarning)
 	serviceProtocol := metricsEndpoint
 	if !insecure {
 		route = ":" + internalPort + validRoute.Path
