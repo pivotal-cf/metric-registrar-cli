@@ -186,7 +186,7 @@ var _ = Describe("Unregister", func() {
 				},
 			}
 
-			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
+			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(cliConnection.cliCommandsCalled).Should(Receive(ConsistOf(
@@ -215,7 +215,7 @@ var _ = Describe("Unregister", func() {
 					NumberOfBindings: 1,
 				},
 			}
-			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
+			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")
 			Expect(err).ToNot(HaveOccurred())
 			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []string{"1234"})
 		})
@@ -232,7 +232,7 @@ var _ = Describe("Unregister", func() {
 				},
 			}
 
-			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
+			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cliConnection.cliCommandsCalled).To(Receive(ConsistOf(
@@ -246,6 +246,48 @@ var _ = Describe("Unregister", func() {
 				"service1",
 				"-f",
 			)))
+		})
+
+		It("only unbinds specified service if path and port are set", func() {
+			cliConnection := newMockCliConnection()
+			cliConnection.exposedPorts = []int{8080, 9090}
+			registrationFetcher := newMockRegistrationFetcher()
+			registrationFetcher.registrations["app-guid"] = []registrations.Registration{
+				{
+					Name:             "service1",
+					Type:             "secure-endpoint",
+					Config:           ":9090/metrics",
+					NumberOfBindings: 2,
+				},
+				{
+					Name:             "service2",
+					Type:             "secure-endpoint",
+					Config:           ":9090/not-this-one",
+					NumberOfBindings: 2,
+				},
+			}
+
+			err := command.UnregisterMetricsEndpoint(
+				registrationFetcher,
+				cliConnection,
+				"app-name",
+				"/metrics",
+				"9090",
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cliConnection.cliCommandsCalled).Should(Receive(ConsistOf(
+				"unbind-service",
+				"app-name",
+				"service1",
+			)))
+
+			Expect(cliConnection.cliCommandsCalled).ShouldNot(Receive(ConsistOf(
+				"unbind-service",
+				"app-name",
+				"service2",
+			)))
+			expectToReceivePutCurlForAppAndPort(cliConnection.cliCommandsCalled, "app-guid", []string{"8080", "9090"})
 		})
 
 		It("only unbinds specified service if path is set", func() {
@@ -272,6 +314,7 @@ var _ = Describe("Unregister", func() {
 				cliConnection,
 				"app-name",
 				":9090/metrics",
+				"",
 			)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -295,7 +338,7 @@ var _ = Describe("Unregister", func() {
 			registrationFetcher := newMockRegistrationFetcher()
 			registrationFetcher.registrations["app-guid"] = nil
 
-			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")
+			err := command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cliConnection.cliCommandsCalled).ShouldNot(Receive(ContainElement("unbind-service")))
@@ -306,7 +349,7 @@ var _ = Describe("Unregister", func() {
 			cliConnection.getAppError = errors.New("expected")
 			registrationFetcher := newMockRegistrationFetcher()
 
-			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
+			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")).ToNot(Succeed())
 		})
 
 		It("returns error if unbinding service fails", func() {
@@ -322,7 +365,7 @@ var _ = Describe("Unregister", func() {
 				},
 			}
 
-			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
+			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")).ToNot(Succeed())
 		})
 
 		It("returns error if deleting service fails", func() {
@@ -338,7 +381,7 @@ var _ = Describe("Unregister", func() {
 				},
 			}
 
-			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
+			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")).ToNot(Succeed())
 		})
 
 		It("returns an error if registration fetcher returns an error", func() {
@@ -346,7 +389,7 @@ var _ = Describe("Unregister", func() {
 			registrationFetcher := newMockRegistrationFetcher()
 			registrationFetcher.fetchError = errors.New("expected")
 
-			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "")).ToNot(Succeed())
+			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "", "")).ToNot(Succeed())
 		})
 
 		It("returns an error if unregistering the port returns an error", func() {
@@ -354,7 +397,7 @@ var _ = Describe("Unregister", func() {
 			registrationFetcher := newMockRegistrationFetcher()
 			cliConnection.getAppsInfoError = errors.New("cf doesn't want to speak to you rn")
 
-			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "2112")).ToNot(Succeed())
+			Expect(command.UnregisterMetricsEndpoint(registrationFetcher, cliConnection, "app-name", "2112", "")).ToNot(Succeed())
 		})
 	})
 })

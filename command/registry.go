@@ -63,6 +63,7 @@ var registerMetricsEndpointFlags = &struct {
 
 var unregisterMetricsEndpointFlags = &struct {
 	Path string `short:"p" long:"path"`
+	Port string `long:"internal-port"`
 	Args struct {
 		AppName string `positional-arg-name:"APP_NAME"`
 	} `positional-args:"APP_NAME" required:"1"`
@@ -146,6 +147,10 @@ var Registry = map[string]Command{
 				Name:        "PATH",
 				Description: "unregister only the specified path",
 			},
+			"--internal-port": {
+				Name:        "PORT",
+				Description: "unregister only the specified port+path for secure endpoints",
+			},
 		},
 		Flags: unregisterMetricsEndpointFlags,
 		Run: func(fetcher registrationFetcher, conn plugin.CliConnection) error {
@@ -154,6 +159,7 @@ var Registry = map[string]Command{
 				conn,
 				unregisterMetricsEndpointFlags.Args.AppName,
 				unregisterMetricsEndpointFlags.Path,
+				unregisterMetricsEndpointFlags.Port,
 			)
 		},
 	},

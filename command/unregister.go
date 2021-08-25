@@ -12,8 +12,8 @@ func UnregisterLogFormat(registrationFetcher registrationFetcher, cliConn cliCom
 	return removeRegistrations(registrationFetcher, cliConn, appName, structuredFormat, format)
 }
 
-func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, path string) error {
-	return removeMetricRegistrations(registrationFetcher, cliConn, appName, metricsEndpoint, path)
+func UnregisterMetricsEndpoint(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, path, port string) error {
+	return removeMetricRegistrations(registrationFetcher, cliConn, appName, metricsEndpoint, path, port)
 }
 
 func removeRegistrations(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, registrationType, config string) error {
@@ -42,7 +42,11 @@ func removeRegistrations(registrationFetcher registrationFetcher, cliConn cliCom
 	return nil
 }
 
-func removeMetricRegistrations(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, registrationType, config string) error {
+func removeMetricRegistrations(registrationFetcher registrationFetcher, cliConn cliCommandRunner, appName, registrationType, path, port string) error {
+	config := path
+	if port != "" {
+		config = ":" + port + config
+	}
 	app, err := cliConn.GetApp(appName)
 	if err != nil {
 		return err
