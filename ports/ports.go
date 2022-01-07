@@ -11,7 +11,7 @@ type cliConn interface {
 }
 
 type Response struct {
-	Entity Entity `json: "entity"`
+	Entity Entity `json:"entity"`
 }
 
 type Entity struct {
