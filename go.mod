@@ -5,7 +5,7 @@ go 1.17
 require (
 	code.cloudfoundry.org/cli v7.0.1+incompatible
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
-	github.com/jessevdk/go-flags v1.4.0
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.18.0
 	github.com/pkg/errors v0.9.1
