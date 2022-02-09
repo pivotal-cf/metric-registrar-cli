@@ -66,8 +66,7 @@ func validateRouteForApp(requestedRoute string, app pluginmodels.GetAppModel, se
 	}
 
 	for _, r := range app.Routes {
-		var host string
-		host = formatHost(r)
+		host := formatHost(r)
 		route := url.URL{
 			Host: host,
 			Path: "/" + strings.TrimPrefix(r.Path, "/"),

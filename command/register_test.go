@@ -314,15 +314,6 @@ var _ = Describe("Register", func() {
 	})
 })
 
-func expectToReceiveCupsArgs(called chan []string) (string, string) {
-	var args []string
-	Eventually(called).Should(Receive(&args))
-	Expect(args).To(HaveLen(4))
-	Expect(args[0]).To(Equal("create-user-provided-service"))
-	Expect(args[2]).To(Equal("-l"))
-	return args[1], args[3]
-}
-
 func matchCreateUserProvidedService(args ...string) types.GomegaMatcher {
 	if len(args) == 0 {
 		return ContainElement("create-user-provided-service")

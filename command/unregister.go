@@ -152,10 +152,6 @@ func getPortFromConfig(config string) int {
 	return i
 }
 
-func isPort(p string) bool {
-	return p != ""
-}
-
 func getAllMetricsRegistrations(fetcher registrationFetcher, guid string) ([]registrations.Registration, error) {
 	r1, err := fetcher.Fetch(guid, metricsEndpoint)
 	if err != nil {
