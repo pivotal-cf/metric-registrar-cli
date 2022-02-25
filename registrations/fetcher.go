@@ -113,15 +113,6 @@ func registration(e serviceEntity) (Registration, bool) {
 	}, true
 }
 
-func (f *Fetcher) isBound(appGuid string, bindings []bindingsResponse) bool {
-	for _, b := range bindings {
-		if b.Entity.AppGuid == appGuid {
-			return true
-		}
-	}
-	return false
-}
-
 func (f *Fetcher) serviceBindings(serviceBindingsUrl string) (bindings []bindingsResponse, err error) {
 	err = f.getPagedResource(serviceBindingsUrl, func(messages json.RawMessage) error {
 		var page []bindingsResponse
