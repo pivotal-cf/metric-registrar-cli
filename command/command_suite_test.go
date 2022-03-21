@@ -9,7 +9,7 @@ import (
 	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	"github.com/pivotal-cf/metric-registrar-cli/registrations"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

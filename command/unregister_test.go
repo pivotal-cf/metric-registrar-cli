@@ -9,7 +9,7 @@ import (
 	"github.com/pivotal-cf/metric-registrar-cli/registrations"
 
 	. "github.com/benjamintf1/unmarshalledmatchers"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
