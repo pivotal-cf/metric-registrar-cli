@@ -1,3 +1,32 @@
+## 1.23.0
+
+### Features
+- Custom formatting on a per-type basis can be provided using `format.RegisterCustomFormatter()` -- see the docs [here](https://onsi.github.io/gomega/#adjusting-output)
+
+- Substantial improvement have been made to `StopTrying()`:
+  - Users can now use `StopTrying().Wrap(err)` to wrap errors and `StopTrying().Attach(description, object)` to attach arbitrary objects to the `StopTrying()` error
+  - `StopTrying()` is now always interpreted as a failure.  If you are an early adopter of `StopTrying()` you may need to change your code as the prior version would match against the returned value even if `StopTrying()` was returned.  Going forward the `StopTrying()` api should remain stable.
+  - `StopTrying()` and `StopTrying().Now()` can both be used in matchers - not just polled functions.
+
+- `TryAgainAfter(duration)` is used like `StopTrying()` but instructs `Eventually` and `Consistently` that the poll should be tried again after the specified duration.  This allows you to dynamically adjust the polling duration.
+
+- `ctx` can now be passed-in as the first argument to `Eventually` and `Consistently`.
+
+## Maintenance
+
+- Bump github.com/onsi/ginkgo/v2 from 2.3.0 to 2.3.1 (#597) [afed901]
+- Bump nokogiri from 1.13.8 to 1.13.9 in /docs (#599) [7c691b3]
+- Bump github.com/google/go-cmp from 0.5.8 to 0.5.9 (#587) [ff22665]
+
+## 1.22.1
+
+## Fixes
+- When passed a context and no explicit timeout, Eventually will only timeout when the context is cancelled [e5105cf]
+- Allow StopTrying() to be wrapped [bf3cba9]
+
+## Maintenance
+- bump to ginkgo v2.3.0 [c5d5c39]
+
 ## 1.22.0
 
 ### Features
