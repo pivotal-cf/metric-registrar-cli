@@ -6,9 +6,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	plugin_models "code.cloudfoundry.org/cli/plugin/models"
 	"github.com/pivotal-cf/metric-registrar-cli/registrations"
-
-	"code.cloudfoundry.org/cli/plugin/models"
 )
 
 type appLister interface {
@@ -45,10 +44,10 @@ func ListRegisteredMetricsEndpoints(writer io.Writer, fetcher registrationFetche
 
 func writeTable(writer io.Writer, apps []plugin_models.GetAppsModel, regs map[string][]registrations.Registration, appName, configName string) error {
 	w := tabwriter.NewWriter(writer, 0, 8, 2, ' ', tabwriter.StripEscape)
-	writeFields(w, "App", configName)
+	writeFields(w, "App", configName) //nolint:errcheck
 
 	for _, line := range lines(apps, regs, appName) {
-		writeFields(w, line...)
+		writeFields(w, line...) //nolint:errcheck
 	}
 
 	return w.Flush()
