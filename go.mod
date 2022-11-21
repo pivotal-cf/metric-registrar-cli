@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/onsi/ginkgo/v2 v2.5.0
+	github.com/onsi/ginkgo/v2 v2.5.1
 	github.com/onsi/gomega v1.24.0
 	github.com/pkg/errors v0.9.1
 )
@@ -20,7 +20,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/stretchr/testify v1.7.1 // indirect
 	golang.org/x/net v0.1.0 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
