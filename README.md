@@ -16,7 +16,11 @@ NAME:
    register-metrics-endpoint - Register a metrics endpoint which will be scraped at the interval defined at deploy
 
 USAGE:
-   cf register-metrics-endpoint APPNAME PATH
+   cf register-metrics-endpoint APP_NAME PATH [--internal-port PORT] [--insecure INSECURE]
+
+OPTIONS:
+   --insecure           Use legacy insecure HTTP endpoint
+   --internal-port      Port for secure metrics endpoint scraping
 ```
 
 ### Structured Log Format
