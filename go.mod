@@ -7,7 +7,7 @@ require (
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/onsi/ginkgo/v2 v2.9.7
-	github.com/onsi/gomega v1.27.7
+	github.com/onsi/gomega v1.27.8
 	github.com/pkg/errors v0.9.1
 )
 
