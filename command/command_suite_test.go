@@ -111,12 +111,14 @@ func (f *mockRegistrationFetcher) Fetch(appGuid, registrationType string) ([]reg
 	return reg, f.fetchError
 }
 
-func (f *mockRegistrationFetcher) FetchAll(registrationType string) (map[string][]registrations.Registration, error) {
+func (f *mockRegistrationFetcher) FetchAll(registrationType ...string) (map[string][]registrations.Registration, error) {
 	result := make(map[string][]registrations.Registration)
 	for app, regs := range f.registrations {
 		for _, r := range regs {
-			if r.Type == registrationType {
-				result[app] = append(result[app], r)
+			for _, t := range registrationType {
+				if r.Type == t {
+					result[app] = append(result[app], r)
+				}
 			}
 		}
 	}

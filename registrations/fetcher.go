@@ -46,22 +46,27 @@ func NewFetcher(conn cliConn) *Fetcher {
 	return &Fetcher{cliConn: conn}
 }
 
-func (f *Fetcher) FetchAll(registrationType string) (map[string][]Registration, error) {
-	registrations := map[string][]Registration{}
+func (f *Fetcher) FetchAll(registrationTypes ...string) (map[string][]Registration, error) {
 	services, err := f.getServices()
 	if err != nil {
 		return nil, err
 	}
 
+	registrations := make(map[string][]Registration)
 	for _, s := range services {
-		r, isRegistration := registration(s.Entity)
-		if isRegistration && r.Type == registrationType {
+		r, ok := registration(s.Entity)
+		if !ok {
+			continue
+		}
+		for _, rt := range registrationTypes {
+			if r.Type != rt {
+				continue
+			}
 			bindings, err := f.serviceBindings(s.Entity.ServiceBindingsUrl)
 			if err != nil {
 				return nil, err
 			}
 			r.NumberOfBindings = len(bindings)
-
 			for _, binding := range bindings {
 				registrations[binding.Entity.AppGuid] = append(registrations[binding.Entity.AppGuid], r)
 			}
