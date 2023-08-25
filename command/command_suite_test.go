@@ -112,7 +112,15 @@ func (f *mockRegistrationFetcher) Fetch(appGuid, registrationType string) ([]reg
 }
 
 func (f *mockRegistrationFetcher) FetchAll(registrationType string) (map[string][]registrations.Registration, error) {
-	return f.registrations, f.fetchError
+	result := make(map[string][]registrations.Registration)
+	for app, regs := range f.registrations {
+		for _, r := range regs {
+			if r.Type == registrationType {
+				result[app] = append(result[app], r)
+			}
+		}
+	}
+	return result, f.fetchError
 }
 
 func getFakeAppsInfoResponse(ports []int) string {

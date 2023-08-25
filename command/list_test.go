@@ -128,15 +128,17 @@ var _ = Describe("List", func() {
 	})
 
 	Describe("ListRegisteredMetricsEndpoints", func() {
-		It("displays registered log formats", func() {
+		It("displays registered metric formats", func() {
 			registrationFetcher := newMockRegistrationFetcher()
 			registrationFetcher.registrations = map[string][]registrations.Registration{
 				"app-guid": {
 					{Type: "metrics-endpoint", Config: "/metrics"},
 					{Type: "metrics-endpoint", Config: "/promql"},
+					{Type: "secure-endpoint", Config: ":8081/metrics"},
 				},
 				"app-guid-2": {
 					{Type: "metrics-endpoint", Config: "/promql"},
+					{Type: "secure-endpoint", Config: ":1234/promql"},
 				},
 			}
 			writer := newSpyWriter()
@@ -153,20 +155,24 @@ var _ = Describe("List", func() {
 				"App         Path",
 				"app-name    /metrics",
 				"app-name    /promql",
+				"app-name    :8081/metrics",
 				"app-name-2  /promql",
+				"app-name-2  :1234/promql",
 				"",
 			}))
 		})
 
-		It("only displays registered log formats for the specified apps", func() {
+		It("only displays registered metric formats for the specified apps", func() {
 			registrationFetcher := newMockRegistrationFetcher()
 			registrationFetcher.registrations = map[string][]registrations.Registration{
 				"app-guid": {
 					{Type: "metrics-endpoint", Config: "/metrics"},
 					{Type: "metrics-endpoint", Config: "/promql"},
+					{Type: "secure-endpoint", Config: ":8081/metrics"},
 				},
 				"app-guid-2": {
 					{Type: "metrics-endpoint", Config: "/promql"},
+					{Type: "secure-endpoint", Config: ":1234/promql"},
 				},
 			}
 			writer := newSpyWriter()
@@ -183,6 +189,7 @@ var _ = Describe("List", func() {
 				"App       Path",
 				"app-name  /metrics",
 				"app-name  /promql",
+				"app-name  :8081/metrics",
 				"",
 			}))
 		})

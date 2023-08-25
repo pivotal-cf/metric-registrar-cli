@@ -29,9 +29,18 @@ func ListRegisteredLogFormats(writer io.Writer, fetcher registrationFetcher, lis
 }
 
 func ListRegisteredMetricsEndpoints(writer io.Writer, fetcher registrationFetcher, lister appLister, appName string) error {
-	regs, err := fetcher.FetchAll(metricsEndpoint)
+	appsToRegistrations, err := fetcher.FetchAll(metricsEndpoint)
 	if err != nil {
 		return err
+	}
+
+	appsToSecureRegistrations, err := fetcher.FetchAll(secureEndpoint)
+	if err != nil {
+		return err
+	}
+
+	for app, regs := range appsToSecureRegistrations {
+		appsToRegistrations[app] = append(appsToRegistrations[app], regs...)
 	}
 
 	apps, err := lister.GetApps()
@@ -39,7 +48,7 @@ func ListRegisteredMetricsEndpoints(writer io.Writer, fetcher registrationFetche
 		return err
 	}
 
-	return writeTable(writer, apps, regs, appName, "Path")
+	return writeTable(writer, apps, appsToRegistrations, appName, "Path")
 }
 
 func writeTable(writer io.Writer, apps []plugin_models.GetAppsModel, regs map[string][]registrations.Registration, appName, configName string) error {
