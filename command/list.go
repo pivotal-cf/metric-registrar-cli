@@ -29,7 +29,7 @@ func ListRegisteredLogFormats(writer io.Writer, fetcher registrationFetcher, lis
 }
 
 func ListRegisteredMetricsEndpoints(writer io.Writer, fetcher registrationFetcher, lister appLister, appName string) error {
-	regs, err := fetcher.FetchAll(metricsEndpoint)
+	regs, err := fetcher.FetchAll(metricsEndpoint, secureEndpoint)
 	if err != nil {
 		return err
 	}

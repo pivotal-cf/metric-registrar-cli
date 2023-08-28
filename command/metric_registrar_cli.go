@@ -27,7 +27,7 @@ type MetricRegistrarCli struct {
 
 type registrationFetcher interface {
 	Fetch(string, string) ([]registrations.Registration, error)
-	FetchAll(string) (map[string][]registrations.Registration, error)
+	FetchAll(...string) (map[string][]registrations.Registration, error)
 }
 
 type cliCommandRunner interface {
