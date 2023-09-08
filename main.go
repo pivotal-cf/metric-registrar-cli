@@ -1,3 +1,7 @@
+/*
+The metric-registrar cf CLI plugin provides commands to register and unregister
+Cloud Foundry applications for metric collection.
+*/
 package main
 
 import (
