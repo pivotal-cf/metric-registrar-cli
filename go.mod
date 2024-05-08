@@ -2,13 +2,13 @@ module github.com/pivotal-cf/metric-registrar-cli
 
 go 1.21.0
 
-toolchain go1.21.9
+toolchain go1.21.10
 
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/onsi/ginkgo/v2 v2.17.2
+	github.com/onsi/ginkgo/v2 v2.17.3
 	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 )
@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20240430035430-e4905b036c4e // indirect
+	github.com/google/pprof v0.0.0-20240507183855-6f11f98ebb1c // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	golang.org/x/net v0.25.0 // indirect
