@@ -2,7 +2,7 @@ module github.com/pivotal-cf/metric-registrar-cli
 
 go 1.21.0
 
-toolchain go1.21.11
+toolchain go1.21.12
 
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
